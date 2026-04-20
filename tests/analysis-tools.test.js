@@ -6,12 +6,14 @@ vi.mock('glob');
 import { readFile, stat, writeFile } from 'fs/promises';
 import { glob } from 'glob';
 import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, getVaultStructure, listNotesDetailed, previewNotes, writeFrontmatter } from '../src/analysis-tools.js';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('analysis tools', () => {
   const vaultPath = '/test/vault';
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSnapshotCache();
   });
 
   it('should build folder hierarchy', async () => {
@@ -20,6 +22,8 @@ describe('analysis tools', () => {
       '/test/vault/projects/nested/b.md',
       '/test/vault/journal/2026-04-20.md'
     ]);
+    stat.mockResolvedValue({ size: 10, birthtime: new Date('2026-04-01T00:00:00Z'), mtime: new Date('2026-04-02T00:00:00Z') });
+    readFile.mockResolvedValue('# Note');
 
     const result = await getVaultStructure(vaultPath);
 

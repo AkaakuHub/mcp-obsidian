@@ -15,6 +15,10 @@ export const config = {
     fileOperation: 30000, // 30 seconds for file operations
     searchOperation: 60000, // 60 seconds for search operations
   },
+
+  cache: {
+    snapshotTtlMs: 2000,
+  },
   
   // Security settings
   security: {

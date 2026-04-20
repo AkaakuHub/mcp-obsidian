@@ -1,12 +1,14 @@
 import { readFile, stat } from 'fs/promises';
 import path from 'path';
 import { glob } from 'glob';
+import { mapWithConcurrency } from './async.js';
 import { config } from './config.js';
 import { Errors } from './errors.js';
 import { extractWikilinks } from './links.js';
 import { extractFrontmatter, extractNoteMetadata } from './metadata.js';
 import { extractTasksFromContent } from './task-analysis.js';
 import { extractTags } from './tags.js';
+import { getCachedSnapshot, setCachedSnapshot } from './vault-cache.js';
 import { validateFileSize, validatePathWithinBase } from './validation.js';
 
 function assertDirectoryWithinVault(vaultPath, directory) {
@@ -40,7 +42,7 @@ function buildPreview(content, previewLines) {
     .trim();
 }
 
-export async function buildNoteRecord(vaultPath, file, options = {}) {
+async function buildNoteRecord(vaultPath, file, options = {}) {
   const {
     includeContent = false,
     previewLines = 12
@@ -88,48 +90,95 @@ export async function buildNoteRecord(vaultPath, file, options = {}) {
   return record;
 }
 
-export async function scanVaultNotes(vaultPath, options = {}) {
-  const {
-    directory = null,
-    includeContent = false,
-    previewLines = 12,
-    limit,
-    offset = 0
-  } = options;
+function normalizeScanOptions(options = {}) {
+  return {
+    directory: options.directory || null,
+    includeContent: Boolean(options.includeContent),
+    previewLines: options.previewLines ?? 12,
+  };
+}
 
-  const files = await listMarkdownFiles(vaultPath, directory);
-  const total = files.length;
-  const selectedFiles = typeof limit === 'number'
-    ? files.slice(offset, offset + limit)
-    : files.slice(offset);
+function createCacheKey(vaultPath, options) {
+  return JSON.stringify({
+    vaultPath,
+    ...normalizeScanOptions(options)
+  });
+}
+
+async function buildSnapshot(vaultPath, options = {}) {
+  const normalizedOptions = normalizeScanOptions(options);
+  const files = await listMarkdownFiles(vaultPath, normalizedOptions.directory);
+  const results = await mapWithConcurrency(
+    files,
+    config.limits.maxConcurrentReads,
+    async (file) => {
+      try {
+        return {
+          note: await buildNoteRecord(vaultPath, file, normalizedOptions),
+          error: null
+        };
+      } catch (error) {
+        return {
+          note: null,
+          error: {
+            path: path.relative(vaultPath, file),
+            error: error.message || String(error)
+          }
+        };
+      }
+    }
+  );
 
   const notes = [];
   const errors = [];
 
-  for (const file of selectedFiles) {
-    try {
-      const record = await buildNoteRecord(vaultPath, file, { includeContent, previewLines });
-      notes.push(record);
-    } catch (error) {
-      errors.push({
-        path: path.relative(vaultPath, file),
-        error: error.message || String(error)
-      });
+  for (const result of results) {
+    if (result.note) {
+      notes.push(result.note);
+    }
+    if (result.error) {
+      errors.push(result.error);
     }
   }
-
-  const returned = notes.length;
 
   return {
     notes,
     errors,
+    total: files.length
+  };
+}
+
+export async function getVaultSnapshot(vaultPath, options = {}) {
+  const cacheKey = createCacheKey(vaultPath, options);
+  const ttlMs = config.cache.snapshotTtlMs;
+  const cached = getCachedSnapshot(cacheKey, ttlMs);
+  if (cached) {
+    return cached;
+  }
+
+  const snapshot = await buildSnapshot(vaultPath, options);
+  setCachedSnapshot(cacheKey, snapshot);
+  return snapshot;
+}
+
+export async function scanVaultNotes(vaultPath, options = {}) {
+  const { limit, offset = 0 } = options;
+  const snapshot = await getVaultSnapshot(vaultPath, options);
+  const notes = typeof limit === 'number'
+    ? snapshot.notes.slice(offset, offset + limit)
+    : snapshot.notes.slice(offset);
+  const returned = notes.length;
+
+  return {
+    notes,
+    errors: snapshot.errors,
     pagination: typeof limit === 'number'
       ? {
-          total,
+          total: snapshot.total,
           returned,
           limit,
           offset,
-          hasMore: offset + returned < total
+          hasMore: offset + returned < snapshot.total
         }
       : null
   };
@@ -178,15 +227,16 @@ export function buildLinkGraph(notes) {
   const nodes = notes.map((note) => {
     const inboundLinks = [...(inbound.get(note.path) || [])].sort();
     const outboundLinks = outbound.get(note.path) || [];
+    const resolvedOutboundCount = outboundLinks.filter((link) => link.resolvedPath).length;
 
     return {
       path: note.path,
-      outboundCount: outboundLinks.filter((link) => link.resolvedPath).length,
+      outboundCount: resolvedOutboundCount,
       inboundCount: inboundLinks.length,
       outboundLinks,
       inboundLinks,
-      isOrphan: inboundLinks.length === 0 && outboundLinks.filter((link) => link.resolvedPath).length === 0,
-      isHub: inboundLinks.length + outboundLinks.filter((link) => link.resolvedPath).length >= 10
+      isOrphan: inboundLinks.length === 0 && resolvedOutboundCount === 0,
+      isHub: inboundLinks.length + resolvedOutboundCount >= 10
     };
   }).sort((left, right) => left.path.localeCompare(right.path));
 

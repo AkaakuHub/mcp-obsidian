@@ -1,16 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/analysis-tools.js', () => ({
-  analyzeLinks: vi.fn()
-}));
-
 vi.mock('../src/vault-analysis.js', () => ({
-  scanVaultNotes: vi.fn(),
+  getVaultSnapshot: vi.fn(),
   buildLinkGraph: vi.fn()
 }));
 
-import { analyzeLinks } from '../src/analysis-tools.js';
-import { buildLinkGraph, scanVaultNotes } from '../src/vault-analysis.js';
+import { buildLinkGraph, getVaultSnapshot } from '../src/vault-analysis.js';
 import {
   auditDailyJournal,
   auditTasks,
@@ -30,7 +25,7 @@ describe('audits', () => {
   });
 
   it('should detect daily and journal style notes', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         { path: 'daily/2026-04-20.md', title: 'Daily', stem: '2026-04-20' },
         { path: 'journal/logbook.md', title: 'Journal', stem: 'logbook' },
@@ -50,7 +45,7 @@ describe('audits', () => {
   });
 
   it('should detect similar notes by title tokens', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         { path: 'a.md', title: 'Project Alpha Plan', stem: 'a' },
         { path: 'b.md', title: 'Project Alpha Notes', stem: 'b' },
@@ -65,7 +60,7 @@ describe('audits', () => {
   });
 
   it('should detect large notes by size or line count', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         { path: 'big.md', sizeBytes: 80000, lineCount: 100, taskCount: 5 },
         { path: 'long.md', sizeBytes: 1000, lineCount: 1200, taskCount: 2 },
@@ -80,7 +75,7 @@ describe('audits', () => {
   });
 
   it('should detect unorganized notes from metadata and link graph', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         { path: 'root.md', directory: '', hasFrontmatter: false, tags: [], linkCount: 0, stem: 'root', links: [] },
         { path: 'projects/linked.md', directory: 'projects', hasFrontmatter: true, tags: ['project'], linkCount: 1, stem: 'linked', links: ['root'] }
@@ -103,7 +98,7 @@ describe('audits', () => {
   });
 
   it('should build vault inventory summary', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         {
           path: 'daily/2026-04-20.md',
@@ -144,7 +139,7 @@ describe('audits', () => {
   });
 
   it('should audit tasks for missing due dates, hotspots, and project gaps', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         {
           path: 'tasks.md',
@@ -181,7 +176,7 @@ describe('audits', () => {
   });
 
   it('should audit daily journal entry points and memo migration candidates', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         {
           path: 'daily/2026-04-20.md',
@@ -218,7 +213,7 @@ describe('audits', () => {
   });
 
   it('should propose refactors without applying changes', async () => {
-    scanVaultNotes.mockResolvedValue({
+    getVaultSnapshot.mockResolvedValue({
       notes: [
         {
           path: 'Idea.md',
@@ -236,7 +231,7 @@ describe('audits', () => {
         }
       ]
     });
-    analyzeLinks.mockResolvedValue({
+    buildLinkGraph.mockReturnValue({
       orphans: ['Idea.md']
     });
 

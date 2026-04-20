@@ -4,7 +4,7 @@ import { Errors } from './errors.js';
 import { diffFrontmatter, mergeFrontmatter, upsertFrontmatter } from './frontmatter.js';
 import { extractFrontmatter } from './metadata.js';
 import { collectTaskStyleVariants, summarizeTasks } from './task-analysis.js';
-import { buildFolderTree, buildLinkGraph, listMarkdownFiles, scanVaultNotes } from './vault-analysis.js';
+import { buildFolderTree, buildLinkGraph, getVaultSnapshot, listMarkdownFiles, scanVaultNotes } from './vault-analysis.js';
 import { validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
 
 function assertValid(validationResult, errorFactory) {
@@ -30,14 +30,13 @@ async function readNoteForMutation(vaultPath, notePath) {
 
 export async function getVaultStructure(vaultPath, options = {}) {
   const { directory = null } = options;
-  const files = await listMarkdownFiles(vaultPath, directory);
-  const relativePaths = files.map((file) => path.relative(vaultPath, file));
-  const folders = buildFolderTree(relativePaths);
+  const snapshot = await getVaultSnapshot(vaultPath, { directory });
+  const folders = buildFolderTree(snapshot.notes.map((note) => note.path));
 
   return {
     root: directory || '',
     folderCount: folders.length,
-    noteCount: relativePaths.length,
+    noteCount: snapshot.notes.length,
     folders
   };
 }
@@ -162,7 +161,7 @@ export async function bulkUpdateFrontmatter(vaultPath, options = {}) {
 
 export async function extractTasks(vaultPath, options = {}) {
   const { directory = null, includeCompleted = true, limit = 500, offset = 0 } = options;
-  const scan = await scanVaultNotes(vaultPath, { directory, includeContent: true });
+  const scan = await getVaultSnapshot(vaultPath, { directory, includeContent: true });
 
   let tasks = scan.notes.flatMap((note) => note.tasks);
   if (!includeCompleted) {
@@ -188,7 +187,7 @@ export async function extractTasks(vaultPath, options = {}) {
 
 export async function analyzeLinks(vaultPath, options = {}) {
   const { notePath = null, directory = null } = options;
-  const scan = await scanVaultNotes(vaultPath, { directory });
+  const scan = await getVaultSnapshot(vaultPath, { directory });
   const graph = buildLinkGraph(scan.notes);
 
   if (notePath) {
@@ -211,7 +210,7 @@ export async function analyzeLinks(vaultPath, options = {}) {
 
 export async function collectTaskStyles(vaultPath, options = {}) {
   const { directory = null } = options;
-  const scan = await scanVaultNotes(vaultPath, { directory, includeContent: true });
+  const scan = await getVaultSnapshot(vaultPath, { directory, includeContent: true });
   const variants = scan.notes.flatMap((note) => collectTaskStyleVariants(note.content, note.path));
 
   return {
