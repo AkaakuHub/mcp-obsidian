@@ -97,7 +97,7 @@ export const auditToolDefinitions = [
   {
     name: 'vault-inventory',
     title: 'Vault Inventory',
-    description: 'Return a one-shot inventory of folders, tags, tasks, large notes, orphan notes, and recent notes.',
+    description: 'Return a one-shot inventory summary of folders, top tags, tasks, large notes, orphan notes, and recent notes.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -154,7 +154,7 @@ export const auditToolDefinitions = [
   {
     name: 'daily-journal-audit',
     title: 'Daily Journal Audit',
-    description: 'Audit daily, journal, and memo-style notes to find entry points and migration candidates.',
+    description: 'Audit daily, journal, and memo-style notes with heuristic entry points and migration candidates.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -178,7 +178,7 @@ export const auditToolDefinitions = [
   {
     name: 'propose-note-refactors',
     title: 'Propose Note Refactors',
-    description: 'Proposal-only safe refactor mode that suggests move, rename, and linking actions without applying them.',
+    description: 'Proposal-only refactor mode that suggests move, rename, and linking actions without applying them.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',

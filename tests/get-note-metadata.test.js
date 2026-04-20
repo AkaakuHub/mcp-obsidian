@@ -51,7 +51,8 @@ Content of the note.`;
       titleLine: 9,
       hasContent: true,
       contentLength: mockContent.length,
-      contentPreview: 'Content of the note.'
+      contentPreview: 'Content of the note.',
+      tags: ['tag1', 'tag2', 'tag3']
     });
   });
   
@@ -70,7 +71,8 @@ This is a simple note without any frontmatter.`;
       titleLine: 1,
       hasContent: true,
       contentLength: mockContent.length,
-      contentPreview: 'This is a simple note without any frontmatter.'
+      contentPreview: 'This is a simple note without any frontmatter.',
+      tags: []
     });
   });
   
@@ -93,7 +95,8 @@ tags: [meta]
       titleLine: null,
       hasContent: false,
       contentLength: mockContent.length,
-      contentPreview: ''
+      contentPreview: '',
+      tags: ['meta']
     });
   });
   
@@ -106,6 +109,7 @@ This note has #inline-tag and #another-tag in the content.`;
     const result = await getNoteMetadata(mockVaultPath, 'inline-tags.md');
     
     expect(result.inlineTags).toEqual(['inline-tag', 'another-tag']);
+    expect(result.tags).toEqual(['inline-tag', 'another-tag']);
   });
   
   it('should handle multiple notes in batch mode', async () => {
@@ -168,7 +172,8 @@ This note has #inline-tag and #another-tag in the content.`;
       titleLine: null,
       hasContent: false,
       contentLength: 0,
-      contentPreview: ''
+      contentPreview: '',
+      tags: []
     });
   });
   

@@ -1,5 +1,5 @@
-import { createMetadata, structuredResponse, stripSearchContext, textResponse } from '../response-formatter.js';
-import { discoverMocs, getNoteMetadata, listNotes, readNote, searchByTags, searchByTitle, searchVault, writeNote, deleteNote } from '../tools.js';
+import { createMetadata, structuredResponse } from '../response-formatter.js';
+import { deleteNote, discoverMocs, getNoteMetadata, listNotes, readResolvedNote, searchByTags, searchByTitle, searchVault, writeNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -12,7 +12,7 @@ export function createBaseHandlers(vaultPath) {
       const { query, path: searchPath, caseSensitive = false, includeContext = true, contextLines = 2, limit = 100, offset = 0 } = args;
       const result = await searchVault(vaultPath, query, searchPath, caseSensitive, { includeContext, contextLines }, limit, offset);
       return structuredResponse(
-        stripSearchContext(result),
+        result,
         `Found ${result.totalMatches} matches for "${query}"`,
         createMetadata(startTime, { tool: toolName, filesSearched: result.filesSearched || 0 })
       );
@@ -28,16 +28,37 @@ export function createBaseHandlers(vaultPath) {
       return structuredResponse(result, makeStructuredDescription('Listed notes', result.count), createMetadata(startTime, { tool: toolName }));
     },
     'read-note': async (args, startTime, toolName) => {
-      const content = await readNote(vaultPath, args.path);
-      return textResponse(content, createMetadata(startTime, { tool: toolName, contentLength: content.length }));
+      const note = await readResolvedNote(vaultPath, args.path);
+      return structuredResponse(
+        {
+          path: note.path,
+          content: note.content
+        },
+        `Read note ${note.path}`,
+        createMetadata(startTime, { tool: toolName, contentLength: note.content.length })
+      );
     },
     'write-note': async (args, startTime, toolName) => {
       await writeNote(vaultPath, args.path, args.content);
-      return textResponse(`Note written successfully to ${args.path}`, createMetadata(startTime, { tool: toolName, contentLength: args.content.length }));
+      return structuredResponse(
+        {
+          path: args.path,
+          status: 'written'
+        },
+        `Note written successfully to ${args.path}`,
+        createMetadata(startTime, { tool: toolName, contentLength: args.content.length })
+      );
     },
     'delete-note': async (args, startTime, toolName) => {
       await deleteNote(vaultPath, args.path);
-      return textResponse(`Note deleted successfully: ${args.path}`, createMetadata(startTime, { tool: toolName }));
+      return structuredResponse(
+        {
+          path: args.path,
+          status: 'deleted'
+        },
+        `Note deleted successfully: ${args.path}`,
+        createMetadata(startTime, { tool: toolName })
+      );
     },
     'search-by-tags': async (args, startTime, toolName) => {
       const { tags, directory, caseSensitive = false } = args;

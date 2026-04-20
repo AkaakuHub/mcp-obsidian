@@ -5,6 +5,23 @@
 import { extractH1Title } from './title-search.js';
 import YAML from 'yaml';
 
+function normalizeFrontmatterTags(frontmatter) {
+  const rawTags = frontmatter?.tags;
+
+  if (Array.isArray(rawTags)) {
+    return rawTags
+      .filter((tag) => typeof tag === 'string')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof rawTags === 'string' && rawTags.trim()) {
+    return [rawTags.trim()];
+  }
+
+  return [];
+}
+
 /**
  * Extracts frontmatter from markdown content (pure function)
  * @param {string} content - The markdown content
@@ -141,6 +158,7 @@ export function extractContentPreview(content, maxLength = 200) {
 export function extractNoteMetadata(content, path) {
   const { frontmatter, contentWithoutFrontmatter, parseError } = extractFrontmatter(content);
   const inlineTags = extractInlineTags(contentWithoutFrontmatter);
+  const tags = [...new Set([...normalizeFrontmatterTags(frontmatter), ...inlineTags])];
   
   const titleInfo = extractH1Title(content);
   const title = titleInfo ? titleInfo.title : null;
@@ -158,7 +176,8 @@ export function extractNoteMetadata(content, path) {
     hasContent,
     contentLength: content.length,
     contentPreview,
-    inlineTags
+    inlineTags,
+    tags
   };
 }
 

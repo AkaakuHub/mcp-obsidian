@@ -5,7 +5,7 @@ export function createAnalysisHandlers(vaultPath) {
   return {
     'get-vault-structure': async (args, startTime, toolName) => {
       const result = await getVaultStructure(vaultPath, args);
-      return structuredResponse(result, `Found ${result.noteCount} notes across ${result.folderCount} top-level folders`, createMetadata(startTime, { tool: toolName }));
+      return structuredResponse(result, `Found ${result.noteCount} notes across ${result.folderCount} folders`, createMetadata(startTime, { tool: toolName }));
     },
     'list-notes-detailed': async (args, startTime, toolName) => {
       const result = await listNotesDetailed(vaultPath, args);

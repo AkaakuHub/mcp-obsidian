@@ -10,8 +10,8 @@ export const baseToolDefinitions = [
         query: { type: 'string', minLength: 1, description: 'Search expression. Space-separated terms default to AND. Supports OR, NOT, title:, content:, tag:, quoted phrases, and parentheses.' },
         path: { type: 'string', description: 'Optional vault-relative directory to limit the search scope.' },
         caseSensitive: { type: 'boolean', default: false, description: 'Match text with exact casing when true.' },
-        includeContext: { type: 'boolean', default: true, description: 'Include highlighted surrounding context for each match.' },
-        contextLines: { type: 'integer', default: 2, minimum: 0, maximum: 10, description: 'Number of surrounding lines to include before and after each match.' },
+        includeContext: { type: 'boolean', default: true, description: 'Include surrounding lines and a highlighted snippet for each match.' },
+        contextLines: { type: 'integer', default: 2, minimum: 0, maximum: 10, description: 'Number of nearby lines to inspect when building the highlighted context snippet.' },
         limit: { type: 'integer', default: 100, minimum: 1, maximum: 500, description: 'Maximum number of matches to return.' },
         offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of matches to skip for pagination.' }
       },
@@ -103,7 +103,13 @@ export const baseToolDefinitions = [
     },
     outputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'string'
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        content: { type: 'string' }
+      },
+      required: ['path', 'content'],
+      additionalProperties: false
     }
   },
   {
@@ -122,7 +128,13 @@ export const baseToolDefinitions = [
     },
     outputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'string'
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        status: { type: 'string', enum: ['written'] }
+      },
+      required: ['path', 'status'],
+      additionalProperties: false
     }
   },
   {
@@ -140,13 +152,19 @@ export const baseToolDefinitions = [
     },
     outputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'string'
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        status: { type: 'string', enum: ['deleted'] }
+      },
+      required: ['path', 'status'],
+      additionalProperties: false
     }
   },
   {
     name: 'search-by-tags',
     title: 'Search by Tags',
-    description: 'Find notes that contain all requested tags. Searches both YAML frontmatter tags and inline `#tags`.',
+    description: 'Find notes that contain all requested tags. Searches inline `#tags` and common frontmatter `tags` forms.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -199,9 +217,10 @@ export const baseToolDefinitions = [
             hasContent: { type: 'boolean' },
             contentLength: { type: 'integer', minimum: 0 },
             contentPreview: { type: 'string' },
-            inlineTags: { type: 'array', items: { type: 'string' } }
+            inlineTags: { type: 'array', items: { type: 'string' } },
+            tags: { type: 'array', items: { type: 'string' } }
           },
-          required: ['path', 'frontmatter', 'frontmatterError', 'title', 'titleLine', 'hasContent', 'contentLength', 'contentPreview', 'inlineTags'],
+          required: ['path', 'frontmatter', 'frontmatterError', 'title', 'titleLine', 'hasContent', 'contentLength', 'contentPreview', 'inlineTags', 'tags'],
           additionalProperties: false
         },
         {

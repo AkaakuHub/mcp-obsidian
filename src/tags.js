@@ -2,6 +2,8 @@
  * Pure functional utilities for tag operations
  */
 
+import { extractFrontmatter } from './metadata.js';
+
 /**
  * Extracts tags from markdown content (pure function)
  * @param {string} content - The markdown content
@@ -31,43 +33,21 @@ export function extractTags(content) {
  * @returns {Array<string>} Array of tags from frontmatter
  */
 export function extractFrontmatterTags(content) {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) {
-    return [];
-  }
-  
-  const frontmatter = frontmatterMatch[1];
-  const tags = [];
-  
-  // Match tags in array format: tags: [tag1, tag2]
-  const arrayMatch = frontmatter.match(/tags:\s*\[(.*?)\]/);
-  if (arrayMatch) {
-    const tagList = arrayMatch[1]
-      .split(',')
-      .map(tag => tag.trim().replace(/['"]/g, ''))
+  const { frontmatter } = extractFrontmatter(content);
+  const rawTags = frontmatter?.tags;
+
+  if (Array.isArray(rawTags)) {
+    return rawTags
+      .filter(tag => typeof tag === 'string')
+      .map(tag => tag.trim())
       .filter(tag => tag.length > 0);
-    tags.push(...tagList);
-  } else {
-    // Match tags in YAML list format
-    const yamlListMatch = frontmatter.match(/tags:\s*\n((?:\s*-\s*.+\n?)+)/);
-    if (yamlListMatch) {
-      const tagLines = yamlListMatch[1]
-        .split('\n')
-        .filter(line => line.trim())
-        .map(line => line.replace(/^\s*-\s*/, '').trim())
-        .filter(tag => tag.length > 0);
-      tags.push(...tagLines);
-    } else {
-      // Match single tag: tags: tag1
-      const singleMatch = frontmatter.match(/tags:\s*(.+)/);
-      if (singleMatch) {
-        const tag = singleMatch[1].trim();
-        if (tag) tags.push(tag);
-      }
-    }
   }
-  
-  return tags;
+
+  if (typeof rawTags === 'string' && rawTags.trim()) {
+    return [rawTags.trim()];
+  }
+
+  return [];
 }
 
 /**

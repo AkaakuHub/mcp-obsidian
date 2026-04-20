@@ -56,7 +56,7 @@ export const analysisToolDefinitions = [
   {
     name: 'preview-notes',
     title: 'Preview Notes',
-    description: 'Return the first N body lines of many notes so clients can inspect note character without fetching full documents.',
+    description: 'Return a trimmed preview from the first N body lines of many notes without sending full documents.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -84,7 +84,7 @@ export const analysisToolDefinitions = [
   {
     name: 'read-frontmatter',
     title: 'Read Frontmatter',
-    description: 'Read only a note frontmatter block and report parse errors without mutating the note.',
+    description: 'Return a note frontmatter block and any parse error without mutating the note.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',

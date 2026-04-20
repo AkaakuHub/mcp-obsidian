@@ -259,6 +259,16 @@ describe('Tools module', () => {
       expect(mkdir).toHaveBeenCalledWith('/test/vault', { recursive: true });
     });
 
+    it('should reject oversized content before writing', async () => {
+      const oversizedContent = 'a'.repeat(11 * 1024 * 1024);
+
+      await expect(writeNote(mockVaultPath, 'note.md', oversizedContent))
+        .rejects.toThrow('File too large');
+
+      expect(mkdir).not.toHaveBeenCalled();
+      expect(writeFile).not.toHaveBeenCalled();
+    });
+
     it('should invalidate cached snapshots after writing', async () => {
       glob.mockResolvedValue(['/test/vault/note.md']);
       stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });

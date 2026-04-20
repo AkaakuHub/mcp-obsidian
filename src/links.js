@@ -35,9 +35,9 @@ export function extractWikilinks(content) {
 }
 
 /**
- * Check if a note is a MOC based on its content
+ * Check if a note should be treated as a MOC based on extracted tags
  * A note is a MOC if it has the #moc tag in frontmatter or inline
- * @param {string} content - The note content
+ * @param {string} content - Unused legacy parameter kept for compatibility
  * @param {string[]} tags - Extracted tags from the note
  * @returns {boolean} True if the note is a MOC
  */

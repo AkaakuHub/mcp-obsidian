@@ -5,13 +5,13 @@ describe('Server Tools Definition', () => {
   it('should define search-vault tool correctly', () => {
     const toolDef = {
       name: 'search-vault',
-      description: 'Search for content in Obsidian vault notes',
+      description: 'Search note contents using boolean operators, field filters, phrases, and optional context snippets.',
       inputSchema: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
-            description: 'Search query (supports regex)',
+            description: 'Search query',
           },
           path: {
             type: 'string',
@@ -36,7 +36,7 @@ describe('Server Tools Definition', () => {
   it('should define list-notes tool correctly', () => {
     const toolDef = {
       name: 'list-notes',
-      description: 'List all notes in the vault or a specific directory',
+      description: 'List markdown note paths in the vault or a specific directory without reading note contents.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -56,7 +56,7 @@ describe('Server Tools Definition', () => {
   it('should define read-note tool correctly', () => {
     const toolDef = {
       name: 'read-note',
-      description: 'Read the content of a specific note',
+      description: 'Read the full content of one markdown note.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -77,7 +77,7 @@ describe('Server Tools Definition', () => {
   it('should define write-note tool correctly', () => {
     const toolDef = {
       name: 'write-note',
-      description: 'Create or update a note',
+      description: 'Create or replace a markdown note.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -104,7 +104,7 @@ describe('Server Tools Definition', () => {
   it('should define delete-note tool correctly', () => {
     const toolDef = {
       name: 'delete-note',
-      description: 'Delete a note',
+      description: 'Delete a markdown note by vault-relative path.',
       inputSchema: {
         type: 'object',
         properties: {

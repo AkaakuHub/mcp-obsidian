@@ -182,7 +182,8 @@ Content with #inline-tag.`;
         hasContent: true,
         contentLength: content.length,
         contentPreview: 'Content with #inline-tag.',
-        inlineTags: ['inline-tag']
+        inlineTags: ['inline-tag'],
+        tags: ['tag1', 'inline-tag']
       });
     });
     

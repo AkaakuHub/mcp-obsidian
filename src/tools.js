@@ -105,10 +105,14 @@ async function resolveNotePath(vaultPath, notePath) {
   );
 }
 
+function toVaultRelativePath(vaultPath, fullPath) {
+  return path.relative(vaultPath, fullPath);
+}
+
 /**
- * Read note content (I/O function with validation)
+ * Read note content and expose the resolved vault-relative path used.
  */
-export async function readNote(vaultPath, notePath) {
+export async function readResolvedNote(vaultPath, notePath) {
   // Pure validations
   const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
@@ -116,10 +120,8 @@ export async function readNote(vaultPath, notePath) {
   const extensionValidation = validateMarkdownExtension(notePath);
   assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: notePath }));
 
-  // Resolve path with wikilink-style fallback
   const fullPath = await resolveNotePath(vaultPath, notePath);
 
-  // I/O: Check file size
   try {
     const stats = await stat(fullPath);
     const sizeValidation = validateFileSizePure(stats.size, config.limits.maxFileSize);
@@ -133,16 +135,26 @@ export async function readNote(vaultPath, notePath) {
     throw Errors.resourceNotFound(notePath, { path: notePath });
   }
 
-  // I/O: Read file
   try {
     const content = await readFile(fullPath, 'utf-8');
-    return content;
+    return {
+      path: toVaultRelativePath(vaultPath, fullPath),
+      content
+    };
   } catch (error) {
     if (error.code === 'ENOENT') {
       throw Errors.resourceNotFound(notePath, { path: notePath });
     }
     throw Errors.internalError(`Failed to read note: ${error.message}`, { path: notePath });
   }
+}
+
+/**
+ * Read note content (I/O function with validation)
+ */
+export async function readNote(vaultPath, notePath) {
+  const result = await readResolvedNote(vaultPath, notePath);
+  return result.content;
 }
 
 /**
@@ -164,6 +176,8 @@ export async function writeNote(vaultPath, notePath, content) {
   
   // Pure: Sanitize content
   const sanitizedContent = sanitizeContentPure(content);
+  const sizeValidation = validateFileSizePure(Buffer.byteLength(sanitizedContent, 'utf-8'), config.limits.maxFileSize);
+  assertValid(sizeValidation, (msg, data) => Errors.invalidParams(msg, { path: notePath, ...data }));
   
   // I/O: Write file
   try {
@@ -308,9 +322,10 @@ export async function getNoteMetadata(vaultPath, notePath, options = {}) {
         title: note.title,
         titleLine: note.titleLine,
         hasContent: note.hasContent,
-      contentLength: note.contentLength,
-      contentPreview: note.contentPreview,
-      inlineTags: note.inlineTags
+        contentLength: note.contentLength,
+        contentPreview: note.contentPreview,
+        inlineTags: note.inlineTags,
+        tags: note.tags
     })),
     count: notes.length,
     errors: snapshot.errors,
