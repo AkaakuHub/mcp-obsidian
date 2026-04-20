@@ -7,12 +7,19 @@ vi.mock('glob');
 
 import { readFile, stat } from 'fs/promises';
 import { glob } from 'glob';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('MOC Discovery Tool', () => {
   const mockVaultPath = '/test/vault';
 
   beforeEach(() => {
     vi.resetAllMocks();
+    clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1024,
+      birthtime: new Date('2026-01-01T00:00:00.000Z'),
+      mtime: new Date('2026-01-02T00:00:00.000Z')
+    });
   });
 
   describe('discoverMocs', () => {
@@ -24,8 +31,6 @@ describe('MOC Discovery Tool', () => {
       ];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
-
       // AI-MOC with links
       readFile
         .mockResolvedValueOnce(`---
@@ -84,7 +89,6 @@ Contains link to [[something]] but not a MOC.`);
       const mockFiles = ['/test/vault/test-moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile.mockResolvedValue(`---
 tags: moc
 ---
@@ -121,7 +125,6 @@ Back to [[index]]`);
       const mockFiles = ['/test/vault/inline-moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile.mockResolvedValue(`# Inline MOC #moc
 
 This uses inline tag instead of frontmatter.
@@ -141,7 +144,6 @@ This uses inline tag instead of frontmatter.
       const mockFiles = ['/test/vault/empty-moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile.mockResolvedValue(`---
 tags: moc
 ---
@@ -164,7 +166,6 @@ No links yet, just a placeholder.`);
       ];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile
         .mockResolvedValueOnce(`---
 tags: moc
@@ -187,7 +188,6 @@ tags: moc
       const mockFiles = ['/test/vault/test-moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile.mockResolvedValueOnce(`---
 tags: [moc, test]
 ---
@@ -211,7 +211,6 @@ tags: [moc, test]
       ];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile
         .mockResolvedValueOnce(`---
 tags: moc
@@ -240,7 +239,6 @@ tags: moc
       const mockFiles = ['/test/vault/note.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
       readFile.mockResolvedValue('# Regular Note\nNo MOC tag here.');
 
       const result = await discoverMocs(mockVaultPath);
@@ -268,7 +266,7 @@ tags: moc
       ];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       // After sorting: bad-moc.md comes before good-moc.md
       readFile
         .mockRejectedValueOnce(new Error('Permission denied'))
@@ -289,7 +287,7 @@ tags: moc
       const mockFiles = ['/test/vault/moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile.mockResolvedValue(`---
 tags: moc
 ---
@@ -316,7 +314,7 @@ tags: moc
       ];
 
       glob.mockResolvedValue(['/test/vault/_mocs/moc1.md']);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile.mockResolvedValue(`---
 tags: moc
 ---
@@ -333,7 +331,7 @@ tags: moc
       const mockFiles = ['/test/vault/ordered-moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile.mockResolvedValue(`---
 tags: moc
 ---
@@ -360,7 +358,7 @@ tags: moc
       ];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile
         .mockResolvedValueOnce(`---
 tags: moc
@@ -392,7 +390,7 @@ No MOC tag here.`);
       const mockFiles = ['/test/vault/standalone-moc.md'];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile.mockResolvedValue(`---
 tags: moc
 ---
@@ -412,7 +410,7 @@ tags: moc
       ];
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
+      stat.mockResolvedValue({ size: 1024, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile
         .mockResolvedValueOnce(`---
 tags: moc

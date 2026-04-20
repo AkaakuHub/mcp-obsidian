@@ -2,6 +2,8 @@
  * Pure functional utilities for metadata extraction
  */
 
+import { extractH1Title } from './title-search.js';
+
 /**
  * Extracts frontmatter from markdown content (pure function)
  * @param {string} content - The markdown content
@@ -150,12 +152,9 @@ export function extractNoteMetadata(content, path) {
   const { frontmatter, contentWithoutFrontmatter } = extractFrontmatter(content);
   const inlineTags = extractInlineTags(contentWithoutFrontmatter);
   
-  // Extract H1 title
-  const titleMatch = contentWithoutFrontmatter.match(/^#\s+(.+)$/m);
-  const title = titleMatch ? titleMatch[1].trim() : null;
-  const titleLine = titleMatch ? 
-    content.split('\n').findIndex(line => line.trim() === `# ${title}`) + 1 : 
-    null;
+  const titleInfo = extractH1Title(content);
+  const title = titleInfo ? titleInfo.title : null;
+  const titleLine = titleInfo ? titleInfo.line : null;
   
   const hasContent = contentWithoutFrontmatter.trim().length > 0;
   const contentPreview = extractContentPreview(content);

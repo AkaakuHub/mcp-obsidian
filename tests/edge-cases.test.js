@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer } from '../src/server.js';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import path from 'path';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('Edge Cases and Error Scenarios', () => {
   const testVault = '/tmp/test-vault-edge-cases';
@@ -10,11 +11,13 @@ describe('Edge Cases and Error Scenarios', () => {
   beforeEach(async () => {
     // Create test vault
     await mkdir(testVault, { recursive: true });
+    clearSnapshotCache();
     server = createServer(testVault);
   });
 
   afterEach(async () => {
     // Clean up
+    clearSnapshotCache();
     await rm(testVault, { recursive: true, force: true });
   });
 

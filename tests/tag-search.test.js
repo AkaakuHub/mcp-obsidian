@@ -2,15 +2,18 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { writeFile, mkdir, rm } from 'fs/promises';
 import path from 'path';
 import { extractTags, searchByTags } from '../src/tools.js';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('Tag Search', () => {
   const testVault = path.join(process.cwd(), 'test-vault-tags');
 
   beforeEach(async () => {
     await mkdir(testVault, { recursive: true });
+    clearSnapshotCache();
   });
 
   afterEach(async () => {
+    clearSnapshotCache();
     await rm(testVault, { recursive: true, force: true });
   });
 
@@ -259,6 +262,14 @@ Using #JavaScript (capitalized) and #javascript (lowercase).`
       const resultsCapital = await searchByTags(testVault, ['JavaScript'], null, true);
       expect(resultsCapital.notes).toHaveLength(1);
       expect(resultsCapital.notes[0].path).toBe('case-test.md');
+    });
+
+    it('should skip oversized files', async () => {
+      const hugeContent = `# Huge\n\n${'a'.repeat(11 * 1024 * 1024)}`;
+      await writeFile(path.join(testVault, 'huge.md'), hugeContent);
+
+      const results = await searchByTags(testVault, ['huge']);
+      expect(results.notes.map((note) => note.path)).not.toContain('huge.md');
     });
   });
 });

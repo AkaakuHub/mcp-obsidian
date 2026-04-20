@@ -5,6 +5,7 @@ import path from 'path';
 import { Errors, MCPError } from './errors.js';
 import { config } from './config.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
+import { getVaultSnapshot } from './vault-analysis.js';
 
 // Import pure functions
 import { findMatchesInContent, findMatchesWithOperators, transformSearchResults, paginateSearchResults, paginateArray } from './search.js';
@@ -355,36 +356,13 @@ export async function searchByTags(vaultPath, searchTags, directory = null, case
     assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: directory }));
   }
   
-  const searchPattern = directory
-    ? path.join(vaultPath, directory, '**/*.md')
-    : path.join(vaultPath, '**/*.md');
-
-  const files = await glob(searchPattern);
-
-  // Sort files for consistent results
-  files.sort();
-
-  const results = [];
-  
-  for (const file of files) {
-    try {
-      // I/O: Read file
-      const content = await readFile(file, 'utf-8');
-      
-      // Pure: Extract tags and check match
-      const fileTags = extractTagsPure(content);
-      
-      if (hasAllTags(fileTags, searchTags, caseSensitive)) {
-        results.push({
-          path: path.relative(vaultPath, file),
-          tags: fileTags
-        });
-      }
-    } catch (error) {
-      // Skip files with read errors
-      continue;
-    }
-  }
+  const snapshot = await getVaultSnapshot(vaultPath, { directory });
+  const results = snapshot.notes
+    .filter((note) => hasAllTags(note.tags, searchTags, caseSensitive))
+    .map((note) => ({
+      path: note.path,
+      tags: note.tags
+    }));
   
   return {
     notes: results,
@@ -428,52 +406,25 @@ export async function getNoteMetadata(vaultPath, notePath, options = {}) {
   }
 
   // Batch mode
-  const searchPattern = notePath
-    ? path.join(vaultPath, notePath, '**/*.md')
-    : path.join(vaultPath, '**/*.md');
-
-  // I/O: Get files
-  const allFiles = await glob(searchPattern);
-
-  // Sort files for consistent pagination across requests
-  allFiles.sort();
-
-  // Apply pagination to file list BEFORE processing
-  const { items: filesToProcess, pagination } = paginateArray(allFiles, limit, offset);
-
-  // Process paginated files
-  const metadataResults = [];
-
-  for (const file of filesToProcess) {
-    try {
-      // I/O: Check file size
-      const stats = await stat(file);
-      const sizeValidation = validateFileSizePure(stats.size, config.limits.maxFileSize);
-
-      if (!sizeValidation.valid) {
-        metadataResults.push({
-          file,
-          error: new Error(sizeValidation.error)
-        });
-        continue;
-      }
-
-      // I/O: Read file
-      const content = await readFile(file, 'utf-8');
-
-      // Pure: Extract metadata
-      const metadata = extractNoteMetadata(content, path.relative(vaultPath, file));
-      metadataResults.push({ file, metadata });
-    } catch (error) {
-      metadataResults.push({ file, error });
-    }
+  if (notePath) {
+    const pathValidation = validatePathWithinBase(vaultPath, notePath);
+    assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
   }
-
-  // Pure: Transform results and add pagination
-  const transformedResults = transformBatchMetadata(metadataResults, vaultPath);
-
+  const snapshot = await getVaultSnapshot(vaultPath, { directory: notePath || null });
+  const { items: notes, pagination } = paginateArray(snapshot.notes, limit, offset);
   return {
-    ...transformedResults,
+    notes: notes.map((note) => ({
+      path: note.path,
+      frontmatter: note.frontmatter,
+      title: note.title,
+      titleLine: note.titleLine,
+      hasContent: note.hasContent,
+      contentLength: note.contentLength,
+      contentPreview: note.contentPreview,
+      inlineTags: note.inlineTags
+    })),
+    count: notes.length,
+    errors: snapshot.errors,
     pagination
   };
 }
@@ -495,68 +446,25 @@ export async function discoverMocs(vaultPath, options = {}) {
     assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: directory }));
   }
 
-  // I/O: Get all markdown files
-  const searchPattern = directory
-    ? path.join(vaultPath, directory, '**/*.md')
-    : path.join(vaultPath, '**/*.md');
-
-  const files = await glob(searchPattern);
-
-  // Sort files for consistent results
-  files.sort();
-
-  // Process files to find MOCs
-  const mocs = [];
-
-  for (const file of files) {
-    try {
-      // Filter by MOC name if specified
+  const snapshot = await getVaultSnapshot(vaultPath, { directory });
+  const mocs = snapshot.notes
+    .filter((note) => {
       if (mocName) {
-        const filename = path.basename(file, '.md');
-        if (filename !== mocName && !file.includes(`/${mocName}.md`)) {
-          continue;
+        const filename = path.basename(note.path, '.md');
+        if (filename !== mocName && !note.path.includes(`/${mocName}.md`)) {
+          return false;
         }
       }
 
-      // I/O: Check file size
-      const stats = await stat(file);
-      const sizeValidation = validateFileSizePure(stats.size, config.limits.maxFileSize);
-
-      if (!sizeValidation.valid) {
-        continue; // Skip large files
-      }
-
-      // I/O: Read file
-      const content = await readFile(file, 'utf-8');
-
-      // Pure: Extract metadata
-      const tags = extractTagsPure(content);
-
-      // Pure: Check if this is a MOC
-      if (!isMoc(content, tags)) {
-        continue; // Skip non-MOC files
-      }
-
-      // Pure: Extract title and wikilinks
-      const titleData = extractH1Title(content);
-      const linkedNotes = extractWikilinks(content);
-
-      // Build MOC entry
-      const relativePath = path.relative(vaultPath, file);
-      const moc = {
-        path: relativePath,
-        title: titleData ? titleData.title : path.basename(file, '.md'),
-        tags: tags,
-        linkedNotes: linkedNotes,
-        linkCount: linkedNotes.length
-      };
-
-      mocs.push(moc);
-    } catch (error) {
-      // Skip files with read errors
-      continue;
-    }
-  }
+      return isMoc('', note.tags);
+    })
+    .map((note) => ({
+      path: note.path,
+      title: note.title || note.stem,
+      tags: note.tags,
+      linkedNotes: note.links,
+      linkCount: note.links.length
+    }));
 
   // Detect MOC hierarchy: find which linked notes are themselves MOCs
   const mocPaths = new Set(mocs.map(m => {

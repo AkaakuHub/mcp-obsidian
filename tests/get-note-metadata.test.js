@@ -7,12 +7,19 @@ vi.mock('glob');
 
 import { readFile, stat } from 'fs/promises';
 import { glob } from 'glob';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('getNoteMetadata', () => {
   const mockVaultPath = '/test/vault';
   
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1024,
+      birthtime: new Date('2026-01-01T00:00:00.000Z'),
+      mtime: new Date('2026-01-02T00:00:00.000Z')
+    });
   });
   
   it('should extract frontmatter metadata', async () => {
@@ -29,8 +36,6 @@ custom_field: Custom Value
 Content of the note.`;
     
     readFile.mockResolvedValue(mockContent);
-    stat.mockResolvedValue({ size: 1024 });
-    
     const result = await getNoteMetadata(mockVaultPath, 'notes/my-note.md');
     
     expect(result).toMatchObject({
@@ -56,8 +61,6 @@ Content of the note.`;
 This is a simple note without any frontmatter.`;
     
     readFile.mockResolvedValue(mockContent);
-    stat.mockResolvedValue({ size: 1024 });
-    
     const result = await getNoteMetadata(mockVaultPath, 'simple-note.md');
     
     expect(result).toMatchObject({
@@ -78,8 +81,6 @@ tags: [meta]
 ---`;
     
     readFile.mockResolvedValue(mockContent);
-    stat.mockResolvedValue({ size: 1024 });
-    
     const result = await getNoteMetadata(mockVaultPath, 'meta-only.md');
     
     expect(result).toMatchObject({
@@ -102,8 +103,6 @@ tags: [meta]
 This note has #inline-tag and #another-tag in the content.`;
     
     readFile.mockResolvedValue(mockContent);
-    stat.mockResolvedValue({ size: 1024 });
-    
     const result = await getNoteMetadata(mockVaultPath, 'inline-tags.md');
     
     expect(result.inlineTags).toEqual(['inline-tag', 'another-tag']);
@@ -116,8 +115,6 @@ This note has #inline-tag and #another-tag in the content.`;
     ];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
-    
     readFile
       .mockResolvedValueOnce('# Note 1\n\nContent 1')
       .mockResolvedValueOnce('---\ntitle: Note 2\n---\n# Note 2\n\nContent 2');
@@ -137,8 +134,6 @@ This note has #inline-tag and #another-tag in the content.`;
     ];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
-    
     readFile.mockResolvedValue('# Test Note\n\nContent');
     
     const result = await getNoteMetadata(mockVaultPath, 'folder', { batch: true });
@@ -152,7 +147,7 @@ This note has #inline-tag and #another-tag in the content.`;
     const mockContent = `# Long Note\n\n${longContent}`;
     
     readFile.mockResolvedValue(mockContent);
-    stat.mockResolvedValue({ size: mockContent.length });
+    stat.mockResolvedValue({ size: mockContent.length, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
     
     const result = await getNoteMetadata(mockVaultPath, 'long-note.md');
     
@@ -162,7 +157,7 @@ This note has #inline-tag and #another-tag in the content.`;
   
   it('should handle empty notes', async () => {
     readFile.mockResolvedValue('');
-    stat.mockResolvedValue({ size: 0 });
+    stat.mockResolvedValue({ size: 0, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
     
     const result = await getNoteMetadata(mockVaultPath, 'empty.md');
     
@@ -194,8 +189,6 @@ This note has #inline-tag and #another-tag in the content.`;
     ];
 
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
-
     // After sorting: bad.md comes before good.md
     readFile
       .mockRejectedValueOnce(new Error('Permission denied'))
@@ -207,8 +200,13 @@ This note has #inline-tag and #another-tag in the content.`;
     expect(result.notes[0].title).toBe('Good Note');
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toMatchObject({
-      file: 'bad.md',
+      path: 'bad.md',
       error: 'Permission denied'
     });
+  });
+
+  it('should validate batch directory parameter', async () => {
+    await expect(getNoteMetadata(mockVaultPath, '../outside', { batch: true }))
+      .rejects.toThrow('Path traversal');
   });
 });
