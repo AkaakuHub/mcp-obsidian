@@ -138,6 +138,34 @@ export const baseToolDefinitions = [
     }
   },
   {
+    name: 'append-to-note',
+    title: 'Append to Note',
+    description: 'Append content to an existing markdown note without replacing the rest of the file. Resolves a unique filename anywhere in the vault.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Existing vault-relative markdown path or unique markdown filename.' },
+        content: { type: 'string', description: 'Markdown content to append.' },
+        separator: { type: 'string', default: '\n\n', description: 'String inserted between existing content and appended content when the note is not empty.' }
+      },
+      required: ['path', 'content'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        status: { type: 'string', enum: ['appended'] },
+        appendedLength: { type: 'integer', minimum: 0 },
+        newContentLength: { type: 'integer', minimum: 0 }
+      },
+      required: ['path', 'status', 'appendedLength', 'newContentLength'],
+      additionalProperties: false
+    }
+  },
+  {
     name: 'move-note',
     title: 'Move Note',
     description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault.',
@@ -185,6 +213,40 @@ export const baseToolDefinitions = [
         status: { type: 'string', enum: ['deleted'] }
       },
       required: ['path', 'status'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'delete-note-safe',
+    title: 'Delete Note Safe',
+    description: 'Preview backlinks before deleting a note. `dryRun: true` is the safe default, and backlink-bearing notes are blocked unless `force` is true.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path or unique markdown filename to inspect or delete.' },
+        dryRun: { type: 'boolean', default: true, description: 'When true, only preview backlink impact without deleting.' },
+        force: { type: 'boolean', default: false, description: 'Allow deletion even when inbound links exist.' }
+      },
+      required: ['path'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        requestedPath: { type: 'string' },
+        dryRun: { type: 'boolean' },
+        force: { type: 'boolean' },
+        blocked: { type: 'boolean' },
+        deleted: { type: 'boolean' },
+        inboundLinkCount: { type: 'integer', minimum: 0 },
+        inboundLinks: { type: 'array' },
+        outboundLinkCount: { type: 'integer', minimum: 0 },
+        outboundLinks: { type: 'array' }
+      },
+      required: ['path', 'requestedPath', 'dryRun', 'force', 'blocked', 'deleted', 'inboundLinkCount', 'inboundLinks', 'outboundLinkCount', 'outboundLinks'],
       additionalProperties: false
     }
   },

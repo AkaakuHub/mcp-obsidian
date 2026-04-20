@@ -8,12 +8,14 @@ vi.mock('../src/tools.js', () => ({
   searchByTags: vi.fn(),
   searchVault: vi.fn(),
   writeNote: vi.fn(),
+  appendToNote: vi.fn(),
   moveNote: vi.fn(),
-  deleteNote: vi.fn()
+  deleteNote: vi.fn(),
+  deleteNoteSafe: vi.fn()
 }));
 
 import { createBaseHandlers } from '../src/tool-handler-groups/base-handlers.js';
-import { deleteNote, moveNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
+import { appendToNote, deleteNote, deleteNoteSafe, moveNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
 
 describe('base handlers', () => {
   const vaultPath = '/test/vault';
@@ -70,6 +72,42 @@ describe('base handlers', () => {
       path: 'areas/note.md',
       status: 'moved'
     });
+  });
+
+  it('returns structured content for append-to-note', async () => {
+    appendToNote.mockResolvedValue({ path: 'note.md', status: 'appended', appendedLength: 6, newContentLength: 22 });
+    const handlers = createBaseHandlers(vaultPath);
+
+    const response = await handlers['append-to-note']({ path: 'note.md', content: 'Append' }, Date.now(), 'append-to-note');
+
+    expect(response.structuredContent).toEqual({
+      path: 'note.md',
+      status: 'appended',
+      appendedLength: 6,
+      newContentLength: 22
+    });
+  });
+
+  it('returns structured content for delete-note-safe', async () => {
+    deleteNoteSafe.mockResolvedValue({
+      path: 'note.md',
+      requestedPath: 'note.md',
+      dryRun: true,
+      force: false,
+      blocked: true,
+      deleted: false,
+      inboundLinkCount: 1,
+      inboundLinks: [{ path: 'ref.md', target: 'note' }],
+      outboundLinkCount: 0,
+      outboundLinks: []
+    });
+    const handlers = createBaseHandlers(vaultPath);
+
+    const response = await handlers['delete-note-safe']({ path: 'note.md' }, Date.now(), 'delete-note-safe');
+
+    expect(response.structuredContent.blocked).toBe(true);
+    expect(response.structuredContent.deleted).toBe(false);
+    expect(response.structuredContent.inboundLinkCount).toBe(1);
   });
 
   it('preserves full search context in structured content', async () => {

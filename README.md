@@ -193,6 +193,12 @@ Create or update a note with new content.
 - Automatic directory creation
 - Content size limits aligned with the server file-size cap
 
+### append-to-note
+Append content to an existing note without replacing the rest of the file.
+- Accepts an exact path or a unique filename resolved anywhere in the vault
+- Uses a configurable separator between existing and appended content
+- Useful for inbox, journal, and task capture flows
+
 ### move-note
 Move or rename a note to a new vault-relative path.
 - Accepts an exact source path or a unique filename resolved anywhere in the vault
@@ -204,6 +210,12 @@ Move or rename a note to a new vault-relative path.
 Delete a note from your vault.
 - Validated deletion with proper path checks
 - Path security checks
+
+### delete-note-safe
+Preview backlinks before deleting a note.
+- `dryRun: true` by default so you can inspect impact first
+- Blocks deletion when inbound links exist unless `force: true`
+- Returns inbound and outbound link details with the delete decision
 
 ### search-by-tags
 Find notes containing specific tags.

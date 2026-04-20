@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { deleteNote, listNotes, moveNote, readResolvedNote, searchByFilename, searchByTags, searchVault, writeNote } from '../tools.js';
+import { appendToNote, deleteNote, deleteNoteSafe, listNotes, moveNote, readResolvedNote, searchByFilename, searchByTags, searchVault, writeNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -49,6 +49,14 @@ export function createBaseHandlers(vaultPath) {
         createMetadata(startTime, { tool: toolName, contentLength: args.content.length })
       );
     },
+    'append-to-note': async (args, startTime, toolName) => {
+      const result = await appendToNote(vaultPath, args.path, args.content, { separator: args.separator });
+      return structuredResponse(
+        result,
+        `Appended content to ${result.path}`,
+        createMetadata(startTime, { tool: toolName, contentLength: args.content.length })
+      );
+    },
     'move-note': async (args, startTime, toolName) => {
       const result = await moveNote(vaultPath, args.sourcePath, args.destinationPath, args.overwrite ?? false);
       return structuredResponse(
@@ -67,6 +75,15 @@ export function createBaseHandlers(vaultPath) {
         `Note deleted successfully: ${args.path}`,
         createMetadata(startTime, { tool: toolName })
       );
+    },
+    'delete-note-safe': async (args, startTime, toolName) => {
+      const result = await deleteNoteSafe(vaultPath, args.path, { dryRun: args.dryRun, force: args.force });
+      const description = result.deleted
+        ? `Safely deleted ${result.path}`
+        : result.blocked
+          ? `Deletion blocked for ${result.path}: ${result.inboundLinkCount} inbound links`
+          : `Previewed delete impact for ${result.path}`;
+      return structuredResponse(result, description, createMetadata(startTime, { tool: toolName, dryRun: result.dryRun, deleted: result.deleted }));
     },
     'search-by-tags': async (args, startTime, toolName) => {
       const { tags, directory, caseSensitive = false } = args;
