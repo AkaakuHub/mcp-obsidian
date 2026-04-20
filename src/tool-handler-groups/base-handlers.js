@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { deleteNote, discoverMocs, getNoteMetadata, listNotes, readResolvedNote, searchByFilename, searchByTags, searchByTitle, searchVault, writeNote } from '../tools.js';
+import { deleteNote, discoverMocs, getNoteMetadata, listNotes, moveNote, readResolvedNote, searchByFilename, searchByTags, searchByTitle, searchVault, writeNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -52,6 +52,14 @@ export function createBaseHandlers(vaultPath) {
         },
         `Note written successfully to ${args.path}`,
         createMetadata(startTime, { tool: toolName, contentLength: args.content.length })
+      );
+    },
+    'move-note': async (args, startTime, toolName) => {
+      const result = await moveNote(vaultPath, args.sourcePath, args.destinationPath, args.overwrite ?? false);
+      return structuredResponse(
+        result,
+        `Note moved from ${result.fromPath} to ${result.path}`,
+        createMetadata(startTime, { tool: toolName })
       );
     },
     'delete-note': async (args, startTime, toolName) => {

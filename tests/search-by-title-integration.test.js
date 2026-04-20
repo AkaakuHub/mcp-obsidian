@@ -37,6 +37,15 @@ describe('Search by Title MCP Integration', () => {
       expect(searchByFilenameTool.description).toContain('filename');
       expect(searchByFilenameTool.inputSchema.required).toEqual(['query']);
     });
+
+    it('should include move-note in available tools', () => {
+      const moveNoteTool = toolDefinitions.find(t => t.name === 'move-note');
+
+      expect(moveNoteTool).toBeDefined();
+      expect(moveNoteTool.title).toBe('Move Note');
+      expect(moveNoteTool.description).toContain('Move or rename');
+      expect(moveNoteTool.inputSchema.required).toEqual(['sourcePath', 'destinationPath']);
+    });
   });
 
   describe('Tool Execution', () => {

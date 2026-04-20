@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { searchVault, listNotes, readNote, writeNote, deleteNote } from '../src/tools.js';
+import { searchVault, listNotes, readNote, writeNote, moveNote, deleteNote } from '../src/tools.js';
 
 // Mock fs and glob
 vi.mock('fs/promises');
 vi.mock('glob');
 
-import { readFile, writeFile, mkdir, unlink, access, stat } from 'fs/promises';
+import { readFile, writeFile, mkdir, unlink, access, rename, stat } from 'fs/promises';
 import { glob } from 'glob';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 import { getVaultSnapshot } from '../src/vault-analysis.js';
@@ -330,6 +330,98 @@ describe('Tools module', () => {
 
       expect(before.notes).toHaveLength(1);
       expect(after.notes).toHaveLength(0);
+      expect(glob).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('moveNote', () => {
+    it('should move note to a new path with directory creation', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      const result = await moveNote(mockVaultPath, 'source.md', 'archive/source.md');
+
+      expect(mkdir).toHaveBeenCalledWith('/test/vault/archive', { recursive: true });
+      expect(rename).toHaveBeenCalledWith('/test/vault/source.md', '/test/vault/archive/source.md');
+      expect(result).toEqual({
+        fromPath: 'source.md',
+        path: 'archive/source.md',
+        status: 'moved'
+      });
+    });
+
+    it('should resolve a unique basename before moving', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/areas/source.md') {
+          const error = new Error('missing');
+          error.code = 'ENOENT';
+          throw error;
+        }
+        throw new Error('not found');
+      });
+      glob.mockResolvedValue(['/test/vault/inbox/source.md']);
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      const result = await moveNote(mockVaultPath, 'source.md', 'areas/source.md');
+
+      expect(glob).toHaveBeenCalledWith('/test/vault/**/source.md');
+      expect(rename).toHaveBeenCalledWith('/test/vault/inbox/source.md', '/test/vault/areas/source.md');
+      expect(result.fromPath).toBe('inbox/source.md');
+    });
+
+    it('should reject an existing destination by default', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return;
+        }
+        if (targetPath === '/test/vault/archive/source.md') {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+
+      await expect(moveNote(mockVaultPath, 'source.md', 'archive/source.md'))
+        .rejects.toThrow('Destination already exists');
+
+      expect(rename).not.toHaveBeenCalled();
+    });
+
+    it('should invalidate cached snapshots after moving', async () => {
+      glob
+        .mockResolvedValueOnce(['/test/vault/source.md'])
+        .mockResolvedValueOnce(['/test/vault/archive/source.md']);
+      stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
+      readFile
+        .mockResolvedValueOnce('# Source')
+        .mockResolvedValueOnce('# Source');
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      const before = await getVaultSnapshot(mockVaultPath, {});
+      await moveNote(mockVaultPath, 'source.md', 'archive/source.md');
+      const after = await getVaultSnapshot(mockVaultPath, {});
+
+      expect(before.notes[0].path).toBe('source.md');
+      expect(after.notes[0].path).toBe('archive/source.md');
       expect(glob).toHaveBeenCalledTimes(2);
     });
   });

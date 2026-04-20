@@ -197,6 +197,13 @@ Create or update a note with new content.
 - Automatic directory creation
 - Content size limits aligned with the server file-size cap
 
+### move-note
+Move or rename a note to a new vault-relative path.
+- Accepts an exact source path or a unique filename resolved anywhere in the vault
+- Creates destination directories automatically
+- Supports safe overwrite mode when explicitly enabled
+- Returns both the resolved source path and destination path
+
 ### delete-note
 Delete a note from your vault.
 - Validated deletion with proper path checks

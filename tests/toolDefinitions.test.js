@@ -10,6 +10,7 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('list-notes');
     expect(toolNames).toContain('read-note');
     expect(toolNames).toContain('write-note');
+    expect(toolNames).toContain('move-note');
     expect(toolNames).toContain('delete-note');
     expect(toolNames).toContain('search-by-tags');
     expect(toolNames).toContain('get-note-metadata');
@@ -47,6 +48,9 @@ describe('Tool Definitions', () => {
 
     const writeTool = toolDefinitions.find(t => t.name === 'write-note');
     expect(writeTool.inputSchema.required).toEqual(['path', 'content']);
+
+    const moveTool = toolDefinitions.find(t => t.name === 'move-note');
+    expect(moveTool.inputSchema.required).toEqual(['sourcePath', 'destinationPath']);
 
     const deleteTool = toolDefinitions.find(t => t.name === 'delete-note');
     expect(deleteTool.inputSchema.required).toEqual(['path']);

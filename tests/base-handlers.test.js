@@ -11,11 +11,12 @@ vi.mock('../src/tools.js', () => ({
   searchByTitle: vi.fn(),
   searchVault: vi.fn(),
   writeNote: vi.fn(),
+  moveNote: vi.fn(),
   deleteNote: vi.fn()
 }));
 
 import { createBaseHandlers } from '../src/tool-handler-groups/base-handlers.js';
-import { deleteNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
+import { deleteNote, moveNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
 
 describe('base handlers', () => {
   const vaultPath = '/test/vault';
@@ -58,6 +59,19 @@ describe('base handlers', () => {
     expect(response.structuredContent).toEqual({
       path: 'note.md',
       status: 'deleted'
+    });
+  });
+
+  it('returns structured content for move-note', async () => {
+    moveNote.mockResolvedValue({ fromPath: 'inbox/note.md', path: 'areas/note.md', status: 'moved' });
+    const handlers = createBaseHandlers(vaultPath);
+
+    const response = await handlers['move-note']({ sourcePath: 'note.md', destinationPath: 'areas/note.md' }, Date.now(), 'move-note');
+
+    expect(response.structuredContent).toEqual({
+      fromPath: 'inbox/note.md',
+      path: 'areas/note.md',
+      status: 'moved'
     });
   });
 

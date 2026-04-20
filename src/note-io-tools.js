@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, unlink, access, stat } from 'fs/promises';
+import { readFile, writeFile, mkdir, unlink, access, rename, stat } from 'fs/promises';
 import { constants } from 'fs';
 import { glob } from 'glob';
 import path from 'path';
@@ -158,6 +158,79 @@ export async function writeNote(vaultPath, notePath, content) {
       throw Errors.accessDenied(`Permission denied: ${notePath}`, { path: notePath });
     }
     throw Errors.internalError(`Failed to write note: ${error.message}`, { path: notePath });
+  }
+}
+
+export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite = false) {
+  const paramValidation = validateRequiredParameters(
+    { sourcePath, destinationPath },
+    ['sourcePath', 'destinationPath']
+  );
+  assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
+
+  const sourceExtensionValidation = validateMarkdownExtension(sourcePath);
+  assertValid(sourceExtensionValidation, (msg) => Errors.invalidParams(msg, { path: sourcePath }));
+
+  const destinationExtensionValidation = validateMarkdownExtension(destinationPath);
+  assertValid(destinationExtensionValidation, (msg) => Errors.invalidParams(msg, { path: destinationPath }));
+
+  const fullSourcePath = await resolveNotePath(vaultPath, sourcePath);
+  const destinationValidation = validatePathWithinBase(vaultPath, destinationPath);
+  assertValid(destinationValidation, (msg) => Errors.accessDenied(msg, { path: destinationPath }));
+
+  const fullDestinationPath = destinationValidation.resolvedPath;
+  const resolvedSourcePath = toVaultRelativePath(vaultPath, fullSourcePath);
+
+  if (resolvedSourcePath === destinationPath) {
+    throw Errors.invalidParams('sourcePath and destinationPath must differ', {
+      sourcePath: resolvedSourcePath,
+      destinationPath
+    });
+  }
+
+  try {
+    await access(fullDestinationPath, constants.F_OK);
+    if (!overwrite) {
+      throw Errors.invalidParams(`Destination already exists: ${destinationPath}`, {
+        path: destinationPath
+      });
+    }
+    await unlink(fullDestinationPath);
+  } catch (error) {
+    if (error instanceof MCPError) {
+      throw error;
+    }
+    if (error.code !== 'ENOENT') {
+      throw Errors.internalError(`Failed to prepare destination: ${error.message}`, {
+        sourcePath: resolvedSourcePath,
+        destinationPath
+      });
+    }
+  }
+
+  try {
+    await mkdir(path.dirname(fullDestinationPath), { recursive: true });
+    await rename(fullSourcePath, fullDestinationPath);
+    invalidateSnapshotsForVault(vaultPath);
+    return {
+      fromPath: resolvedSourcePath,
+      path: destinationPath,
+      status: 'moved'
+    };
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw Errors.resourceNotFound(sourcePath, { path: sourcePath });
+    }
+    if (error.code === 'EACCES' || error.code === 'EPERM') {
+      throw Errors.accessDenied(`Permission denied while moving note to ${destinationPath}`, {
+        sourcePath: resolvedSourcePath,
+        destinationPath
+      });
+    }
+    throw Errors.internalError(`Failed to move note: ${error.message}`, {
+      sourcePath: resolvedSourcePath,
+      destinationPath
+    });
   }
 }
 

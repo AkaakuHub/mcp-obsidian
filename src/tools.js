@@ -6,6 +6,7 @@ export {
   readResolvedNote,
   readNote,
   writeNote,
+  moveNote,
   deleteNote
 } from './note-io-tools.js';
 export {

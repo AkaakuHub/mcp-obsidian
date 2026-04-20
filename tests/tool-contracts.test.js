@@ -8,6 +8,7 @@ vi.mock('../src/tools.js', () => ({
   listNotes: vi.fn(),
   readResolvedNote: vi.fn(),
   writeNote: vi.fn(),
+  moveNote: vi.fn(),
   deleteNote: vi.fn(),
   searchByTags: vi.fn(),
   getNoteMetadata: vi.fn(),
@@ -92,6 +93,11 @@ const outputSamples = {
   'write-note': {
     path: 'note.md',
     status: 'written'
+  },
+  'move-note': {
+    fromPath: 'inbox/note.md',
+    path: 'areas/note.md',
+    status: 'moved'
   },
   'delete-note': {
     path: 'note.md',
@@ -263,6 +269,7 @@ const toolArgs = {
   'list-notes': {},
   'read-note': { path: 'note.md' },
   'write-note': { path: 'note.md', content: '# Note' },
+  'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   'delete-note': { path: 'note.md' },
   'search-by-tags': { tags: ['tag'] },
   'get-note-metadata': { path: 'note.md' },
@@ -298,6 +305,7 @@ describe('tool contracts', () => {
     tools.listNotes.mockResolvedValue(outputSamples['list-notes']);
     tools.readResolvedNote.mockResolvedValue(outputSamples['read-note']);
     tools.writeNote.mockResolvedValue('note.md');
+    tools.moveNote.mockResolvedValue(outputSamples['move-note']);
     tools.deleteNote.mockResolvedValue('note.md');
     tools.searchByTags.mockResolvedValue(outputSamples['search-by-tags']);
     tools.getNoteMetadata.mockResolvedValue(outputSamples['get-note-metadata']);

@@ -168,6 +168,33 @@ export const baseToolDefinitions = [
     }
   },
   {
+    name: 'move-note',
+    title: 'Move Note',
+    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        sourcePath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Existing vault-relative markdown path or unique markdown filename to move.' },
+        destinationPath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'New vault-relative markdown path to move the note to.' },
+        overwrite: { type: 'boolean', default: false, description: 'Replace an existing destination note when true.' }
+      },
+      required: ['sourcePath', 'destinationPath'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        fromPath: { type: 'string' },
+        path: { type: 'string' },
+        status: { type: 'string', enum: ['moved'] }
+      },
+      required: ['fromPath', 'path', 'status'],
+      additionalProperties: false
+    }
+  },
+  {
     name: 'delete-note',
     title: 'Delete Note',
     description: 'Delete a markdown note by vault-relative path.',
