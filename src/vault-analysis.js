@@ -33,7 +33,7 @@ export async function listMarkdownFiles(vaultPath, directory = null) {
   return files.sort();
 }
 
-function buildPreview(content, previewLines) {
+export function buildPreview(content, previewLines) {
   const { contentWithoutFrontmatter } = extractFrontmatter(content);
   return contentWithoutFrontmatter
     .split('\n')
@@ -44,8 +44,7 @@ function buildPreview(content, previewLines) {
 
 async function buildNoteRecord(vaultPath, file, options = {}) {
   const {
-    includeContent = false,
-    previewLines = 12
+    includeContent = false
   } = options;
 
   const stats = await stat(file);
@@ -60,7 +59,6 @@ async function buildNoteRecord(vaultPath, file, options = {}) {
   const tags = extractTags(content);
   const links = extractWikilinks(content);
   const tasks = extractTasksFromContent(content, relativePath);
-  const preview = buildPreview(content, previewLines);
   const lines = content.split('\n');
 
   const record = {
@@ -79,8 +77,7 @@ async function buildNoteRecord(vaultPath, file, options = {}) {
     links,
     taskCount: tasks.length,
     tasks,
-    hasFrontmatter: Object.keys(metadata.frontmatter).length > 0,
-    preview
+    hasFrontmatter: Object.keys(metadata.frontmatter).length > 0
   };
 
   if (includeContent) {
@@ -94,7 +91,6 @@ function normalizeScanOptions(options = {}) {
   return {
     directory: options.directory || null,
     includeContent: Boolean(options.includeContent),
-    previewLines: options.previewLines ?? 12,
   };
 }
 

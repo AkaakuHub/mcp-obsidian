@@ -105,6 +105,43 @@ describe('analysis tools', () => {
 
     expect(result.targetCount).toBe(2);
     expect(result.updatedCount).toBe(2);
+    expect(result.validationFailed).toBe(false);
+  });
+
+  it('should avoid partial apply when bulk validation fails', async () => {
+    glob.mockResolvedValue(['/test/vault/a.md', '/test/vault/b.md']);
+    readFile
+      .mockResolvedValueOnce('# A')
+      .mockRejectedValueOnce(new Error('Permission denied'));
+    writeFile.mockResolvedValue();
+
+    const result = await bulkUpdateFrontmatter(vaultPath, { directory: '', fields: { area: 'work' }, dryRun: false });
+
+    expect(result.applied).toBe(false);
+    expect(result.validationFailed).toBe(true);
+    expect(result.updatedCount).toBe(0);
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it('should roll back already written notes when bulk apply fails mid-flight', async () => {
+    readFile
+      .mockResolvedValueOnce('# A')
+      .mockResolvedValueOnce('# B');
+    writeFile
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error('Disk full'))
+      .mockResolvedValueOnce();
+
+    const result = await bulkUpdateFrontmatter(vaultPath, {
+      paths: ['a.md', 'b.md'],
+      fields: { area: 'work' },
+      dryRun: false
+    });
+
+    expect(result.applied).toBe(false);
+    expect(result.rolledBack).toBe(true);
+    expect(result.updatedCount).toBe(0);
+    expect(writeFile).toHaveBeenCalledTimes(3);
   });
 
   it('should extract tasks and analyze link graph', async () => {

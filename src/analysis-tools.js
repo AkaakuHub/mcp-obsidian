@@ -1,11 +1,11 @@
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { Errors } from './errors.js';
-import { diffFrontmatter, mergeFrontmatter, upsertFrontmatter } from './frontmatter.js';
+import { prepareFrontmatterUpdate } from './frontmatter.js';
 import { extractFrontmatter } from './metadata.js';
 import { collectTaskStyleVariants, summarizeTasks } from './task-analysis.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
-import { buildFolderTree, buildLinkGraph, getVaultSnapshot, listMarkdownFiles, scanVaultNotes } from './vault-analysis.js';
+import { buildFolderTree, buildLinkGraph, buildPreview, getVaultSnapshot, listMarkdownFiles, scanVaultNotes } from './vault-analysis.js';
 import { validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
 
 function assertValid(validationResult, errorFactory) {
@@ -29,6 +29,21 @@ async function readNoteForMutation(vaultPath, notePath) {
   return { fullPath, content };
 }
 
+async function planFrontmatterUpdate(vaultPath, notePath, fields, merge = true) {
+  const { fullPath, content } = await readNoteForMutation(vaultPath, notePath);
+  const prepared = prepareFrontmatterUpdate(content, fields, merge);
+
+  return {
+    path: notePath,
+    fullPath,
+    originalContent: content,
+    nextContent: prepared.nextContent,
+    before: prepared.before,
+    after: prepared.after,
+    changes: prepared.changes
+  };
+}
+
 export async function getVaultStructure(vaultPath, options = {}) {
   const { directory = null } = options;
   const snapshot = await getVaultSnapshot(vaultPath, { directory });
@@ -44,7 +59,7 @@ export async function getVaultStructure(vaultPath, options = {}) {
 
 export async function listNotesDetailed(vaultPath, options = {}) {
   const { directory = null, limit = 100, offset = 0, sortBy = 'updatedAt', order = 'desc' } = options;
-  const snapshot = await getVaultSnapshot(vaultPath, { directory, previewLines: 8 });
+  const snapshot = await getVaultSnapshot(vaultPath, { directory });
   const linkGraph = buildLinkGraph(snapshot.notes);
   const linkIndex = new Map(linkGraph.nodes.map((node) => [node.path, node]));
 
@@ -92,13 +107,13 @@ export async function listNotesDetailed(vaultPath, options = {}) {
 
 export async function previewNotes(vaultPath, options = {}) {
   const { directory = null, limit = 50, offset = 0, previewLines = 20 } = options;
-  const scan = await scanVaultNotes(vaultPath, { directory, limit, offset, previewLines });
+  const scan = await scanVaultNotes(vaultPath, { directory, limit, offset, includeContent: true });
 
   return {
     notes: scan.notes.map((note) => ({
       path: note.path,
       title: note.title,
-      preview: note.preview
+      preview: buildPreview(note.content || '', previewLines)
     })),
     count: scan.notes.length,
     errors: scan.errors,
@@ -118,14 +133,10 @@ export async function readFrontmatter(vaultPath, notePath) {
 
 export async function writeFrontmatter(vaultPath, notePath, fields, options = {}) {
   const { merge = true, dryRun = true } = options;
-  const { fullPath, content } = await readNoteForMutation(vaultPath, notePath);
-  const { frontmatter } = extractFrontmatter(content);
-  const nextFrontmatter = mergeFrontmatter(frontmatter, fields, merge);
-  const nextContent = upsertFrontmatter(content, nextFrontmatter);
-  const changes = diffFrontmatter(frontmatter, nextFrontmatter);
+  const plan = await planFrontmatterUpdate(vaultPath, notePath, fields, merge);
 
   if (!dryRun) {
-    await writeFile(fullPath, nextContent, 'utf-8');
+    await writeFile(plan.fullPath, plan.nextContent, 'utf-8');
     invalidateSnapshotsForVault(vaultPath);
   }
 
@@ -133,9 +144,9 @@ export async function writeFrontmatter(vaultPath, notePath, fields, options = {}
     path: notePath,
     dryRun,
     written: !dryRun,
-    changes,
-    before: frontmatter,
-    after: nextFrontmatter
+    changes: plan.changes,
+    before: plan.before,
+    after: plan.after
   };
 }
 
@@ -156,17 +167,115 @@ export async function bulkUpdateFrontmatter(vaultPath, options = {}) {
     targetPaths = files.slice(0, limit).map((file) => path.relative(vaultPath, file));
   }
 
-  const results = [];
+  const plannedResults = [];
+  const validationErrors = [];
 
   for (const notePath of targetPaths) {
-    results.push(await writeFrontmatter(vaultPath, notePath, fields, { merge, dryRun }));
+    try {
+      const plan = await planFrontmatterUpdate(vaultPath, notePath, fields, merge);
+      plannedResults.push(plan);
+    } catch (error) {
+      validationErrors.push({
+        path: notePath,
+        error: error.message || String(error)
+      });
+    }
   }
 
+  if (validationErrors.length > 0) {
+    return {
+      dryRun,
+      applied: false,
+      validationFailed: true,
+      targetCount: targetPaths.length,
+      updatedCount: 0,
+      errors: validationErrors,
+      results: plannedResults.map((plan) => ({
+        path: plan.path,
+        dryRun: true,
+        written: false,
+        changes: plan.changes,
+        before: plan.before,
+        after: plan.after
+      }))
+    };
+  }
+
+  if (dryRun) {
+    return {
+      dryRun: true,
+      applied: false,
+      validationFailed: false,
+      targetCount: targetPaths.length,
+      updatedCount: plannedResults.filter((result) => result.changes.length > 0).length,
+      errors: [],
+      results: plannedResults.map((plan) => ({
+        path: plan.path,
+        dryRun: true,
+        written: false,
+        changes: plan.changes,
+        before: plan.before,
+        after: plan.after
+      }))
+    };
+  }
+
+  const appliedPlans = [];
+
+  try {
+    for (const plan of plannedResults) {
+      if (plan.changes.length === 0) {
+        continue;
+      }
+
+      await writeFile(plan.fullPath, plan.nextContent, 'utf-8');
+      appliedPlans.push(plan);
+    }
+  } catch (error) {
+    for (const appliedPlan of appliedPlans.reverse()) {
+      await writeFile(appliedPlan.fullPath, appliedPlan.originalContent, 'utf-8');
+    }
+
+    invalidateSnapshotsForVault(vaultPath);
+    return {
+      dryRun: false,
+      applied: false,
+      validationFailed: false,
+      rolledBack: true,
+      targetCount: targetPaths.length,
+      updatedCount: 0,
+      errors: [{
+        path: appliedPlans[appliedPlans.length - 1]?.path || null,
+        error: error.message || String(error)
+      }],
+      results: plannedResults.map((plan) => ({
+        path: plan.path,
+        dryRun: false,
+        written: false,
+        changes: plan.changes,
+        before: plan.before,
+        after: plan.after
+      }))
+    };
+  }
+
+  invalidateSnapshotsForVault(vaultPath);
+
   return {
-    dryRun,
+    dryRun: false,
+    applied: true,
+    validationFailed: false,
     targetCount: targetPaths.length,
-    updatedCount: results.filter((result) => result.changes.length > 0).length,
-    results
+    updatedCount: plannedResults.filter((result) => result.changes.length > 0).length,
+    errors: [],
+    results: plannedResults.map((plan) => ({
+      path: plan.path,
+      dryRun: false,
+      written: plan.changes.length > 0,
+      changes: plan.changes,
+      before: plan.before,
+      after: plan.after
+    }))
   };
 }
 

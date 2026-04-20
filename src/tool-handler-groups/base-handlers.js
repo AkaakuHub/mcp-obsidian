@@ -1,0 +1,58 @@
+import { createMetadata, structuredResponse, stripSearchContext, textResponse } from '../response-formatter.js';
+import { discoverMocs, getNoteMetadata, listNotes, readNote, searchByTags, searchByTitle, searchVault, writeNote, deleteNote } from '../tools.js';
+
+function makeStructuredDescription(title, count, extra = '') {
+  const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
+  return extra ? `${countText}\n${extra}` : countText;
+}
+
+export function createBaseHandlers(vaultPath) {
+  return {
+    'search-vault': async (args, startTime, toolName) => {
+      const { query, path: searchPath, caseSensitive = false, includeContext = true, contextLines = 2, limit = 100, offset = 0 } = args;
+      const result = await searchVault(vaultPath, query, searchPath, caseSensitive, { includeContext, contextLines }, limit, offset);
+      return structuredResponse(
+        stripSearchContext(result),
+        `Found ${result.totalMatches} matches for "${query}"`,
+        createMetadata(startTime, { tool: toolName, filesSearched: result.filesSearched || 0 })
+      );
+    },
+    'search-by-title': async (args, startTime, toolName) => {
+      const { query, path: searchPath, caseSensitive = false, limit = 100, offset = 0 } = args;
+      const result = await searchByTitle(vaultPath, query, searchPath, caseSensitive, limit, offset);
+      return structuredResponse(result, `Found ${result.count} notes matching title "${query}"`, createMetadata(startTime, { tool: toolName, filesSearched: result.filesSearched || 0 }));
+    },
+    'list-notes': async (args, startTime, toolName) => {
+      const { directory, limit = 100, offset = 0 } = args;
+      const result = await listNotes(vaultPath, directory, limit, offset);
+      return structuredResponse(result, makeStructuredDescription('Listed notes', result.count), createMetadata(startTime, { tool: toolName }));
+    },
+    'read-note': async (args, startTime, toolName) => {
+      const content = await readNote(vaultPath, args.path);
+      return textResponse(content, createMetadata(startTime, { tool: toolName, contentLength: content.length }));
+    },
+    'write-note': async (args, startTime, toolName) => {
+      await writeNote(vaultPath, args.path, args.content);
+      return textResponse(`Note written successfully to ${args.path}`, createMetadata(startTime, { tool: toolName, contentLength: args.content.length }));
+    },
+    'delete-note': async (args, startTime, toolName) => {
+      await deleteNote(vaultPath, args.path);
+      return textResponse(`Note deleted successfully: ${args.path}`, createMetadata(startTime, { tool: toolName }));
+    },
+    'search-by-tags': async (args, startTime, toolName) => {
+      const { tags, directory, caseSensitive = false } = args;
+      const result = await searchByTags(vaultPath, tags, directory, caseSensitive);
+      return structuredResponse(result, `Found ${result.count} notes with requested tags`, createMetadata(startTime, { tool: toolName, tagsSearched: tags.length }));
+    },
+    'get-note-metadata': async (args, startTime, toolName) => {
+      const { path: notePath, batch = false, directory, limit = 50, offset = 0 } = args;
+      const pathArg = batch && directory ? directory : notePath;
+      const result = await getNoteMetadata(vaultPath, pathArg, { batch, limit, offset });
+      return structuredResponse(result, batch ? `Retrieved metadata for ${result.count} notes` : `Retrieved metadata for ${notePath}`, createMetadata(startTime, { tool: toolName, mode: batch ? 'batch' : 'single' }));
+    },
+    'discover-mocs': async (args, startTime, toolName) => {
+      const result = await discoverMocs(vaultPath, args);
+      return structuredResponse(result, `Found ${result.count} MOCs`, createMetadata(startTime, { tool: toolName, mocsFound: result.count }));
+    }
+  };
+}

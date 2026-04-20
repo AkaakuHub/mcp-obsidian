@@ -104,3 +104,17 @@ export function diffFrontmatter(before = {}, after = {}) {
       after: after[key] ?? null
     }));
 }
+
+export function prepareFrontmatterUpdate(content, fields, merge = true) {
+  const { frontmatter } = extractFrontmatter(content);
+  const nextFrontmatter = mergeFrontmatter(frontmatter, fields, merge);
+  const nextContent = upsertFrontmatter(content, nextFrontmatter);
+  const changes = diffFrontmatter(frontmatter, nextFrontmatter);
+
+  return {
+    before: frontmatter,
+    after: nextFrontmatter,
+    changes,
+    nextContent
+  };
+}

@@ -48,4 +48,18 @@ describe('vault analysis snapshot', () => {
     expect(glob).toHaveBeenCalledTimes(1);
     expect(readFile).toHaveBeenCalledTimes(3);
   });
+
+  it('should reuse the same snapshot across different preview line requests', async () => {
+    glob.mockResolvedValue(['/test/vault/a.md']);
+    stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
+    readFile.mockResolvedValue('# A\n\nline1\nline2');
+
+    const first = await getVaultSnapshot(vaultPath, { includeContent: true, previewLines: 2 });
+    const second = await getVaultSnapshot(vaultPath, { includeContent: true, previewLines: 10 });
+
+    expect(first.notes[0].content).toContain('line1');
+    expect(second.notes[0].content).toContain('line2');
+    expect(glob).toHaveBeenCalledTimes(1);
+    expect(readFile).toHaveBeenCalledTimes(1);
+  });
 });
