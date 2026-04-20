@@ -24,3 +24,11 @@ export function setCachedSnapshot(cacheKey, value) {
 export function clearSnapshotCache() {
   snapshotCache.clear();
 }
+
+export function invalidateSnapshotsForVault(vaultPath) {
+  for (const cacheKey of snapshotCache.keys()) {
+    if (cacheKey.includes(`"vaultPath":"${vaultPath}"`)) {
+      snapshotCache.delete(cacheKey);
+    }
+  }
+}

@@ -4,6 +4,7 @@ import { glob } from 'glob';
 import path from 'path';
 import { Errors, MCPError } from './errors.js';
 import { config } from './config.js';
+import { invalidateSnapshotsForVault } from './vault-cache.js';
 
 // Import pure functions
 import { findMatchesInContent, findMatchesWithOperators, transformSearchResults, paginateSearchResults, paginateArray } from './search.js';
@@ -295,6 +296,7 @@ export async function writeNote(vaultPath, notePath, content) {
   try {
     await mkdir(dir, { recursive: true });
     await writeFile(fullPath, sanitizedContent, 'utf-8');
+    invalidateSnapshotsForVault(vaultPath);
     return notePath;
   } catch (error) {
     if (error.code === 'EACCES' || error.code === 'EPERM') {
@@ -330,6 +332,7 @@ export async function deleteNote(vaultPath, notePath) {
   // I/O: Delete file
   try {
     await unlink(fullPath);
+    invalidateSnapshotsForVault(vaultPath);
     return notePath;
   } catch (error) {
     if (error.code === 'ENOENT') {

@@ -7,12 +7,15 @@ vi.mock('glob');
 
 import { readFile, writeFile, mkdir, unlink, access, stat } from 'fs/promises';
 import { glob } from 'glob';
+import { clearSnapshotCache } from '../src/vault-cache.js';
+import { getVaultSnapshot } from '../src/vault-analysis.js';
 
 describe('Tools module', () => {
   const mockVaultPath = '/test/vault';
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSnapshotCache();
   });
 
   describe('searchVault', () => {
@@ -257,6 +260,24 @@ describe('Tools module', () => {
 
       expect(mkdir).toHaveBeenCalledWith('/test/vault', { recursive: true });
     });
+
+    it('should invalidate cached snapshots after writing', async () => {
+      glob.mockResolvedValue(['/test/vault/note.md']);
+      stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
+      readFile
+        .mockResolvedValueOnce('# Before')
+        .mockResolvedValueOnce('# After');
+      mkdir.mockResolvedValue();
+      writeFile.mockResolvedValue();
+
+      const before = await getVaultSnapshot(mockVaultPath, {});
+      await writeNote(mockVaultPath, 'note.md', '# After');
+      const after = await getVaultSnapshot(mockVaultPath, {});
+
+      expect(before.notes[0].title).toBe('Before');
+      expect(after.notes[0].title).toBe('After');
+      expect(glob).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('deleteNote', () => {
@@ -284,6 +305,24 @@ describe('Tools module', () => {
 
       await expect(deleteNote(mockVaultPath, 'protected.md'))
         .rejects.toThrow('Permission denied');
+    });
+
+    it('should invalidate cached snapshots after deleting', async () => {
+      glob
+        .mockResolvedValueOnce(['/test/vault/delete-me.md'])
+        .mockResolvedValueOnce([]);
+      stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
+      readFile.mockResolvedValue('# Delete Me');
+      access.mockResolvedValue();
+      unlink.mockResolvedValue();
+
+      const before = await getVaultSnapshot(mockVaultPath, {});
+      await deleteNote(mockVaultPath, 'delete-me.md');
+      const after = await getVaultSnapshot(mockVaultPath, {});
+
+      expect(before.notes).toHaveLength(1);
+      expect(after.notes).toHaveLength(0);
+      expect(glob).toHaveBeenCalledTimes(2);
     });
   });
 });

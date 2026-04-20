@@ -4,6 +4,7 @@ import { Errors } from './errors.js';
 import { diffFrontmatter, mergeFrontmatter, upsertFrontmatter } from './frontmatter.js';
 import { extractFrontmatter } from './metadata.js';
 import { collectTaskStyleVariants, summarizeTasks } from './task-analysis.js';
+import { invalidateSnapshotsForVault } from './vault-cache.js';
 import { buildFolderTree, buildLinkGraph, getVaultSnapshot, listMarkdownFiles, scanVaultNotes } from './vault-analysis.js';
 import { validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
 
@@ -43,11 +44,11 @@ export async function getVaultStructure(vaultPath, options = {}) {
 
 export async function listNotesDetailed(vaultPath, options = {}) {
   const { directory = null, limit = 100, offset = 0, sortBy = 'updatedAt', order = 'desc' } = options;
-  const scan = await scanVaultNotes(vaultPath, { directory, limit, offset, previewLines: 8 });
-  const linkGraph = buildLinkGraph(scan.notes);
+  const snapshot = await getVaultSnapshot(vaultPath, { directory, previewLines: 8 });
+  const linkGraph = buildLinkGraph(snapshot.notes);
   const linkIndex = new Map(linkGraph.nodes.map((node) => [node.path, node]));
 
-  const notes = scan.notes.map((note) => ({
+  const notes = snapshot.notes.map((note) => ({
     path: note.path,
     title: note.title,
     createdAt: note.createdAt,
@@ -72,11 +73,20 @@ export async function listNotesDetailed(vaultPath, options = {}) {
     return leftValue > rightValue ? direction : -direction;
   });
 
+  const paginatedNotes = notes.slice(offset, offset + limit);
+  const returned = paginatedNotes.length;
+
   return {
-    notes,
-    count: notes.length,
-    errors: scan.errors,
-    pagination: scan.pagination
+    notes: paginatedNotes,
+    count: paginatedNotes.length,
+    errors: snapshot.errors,
+    pagination: {
+      total: snapshot.total,
+      returned,
+      limit,
+      offset,
+      hasMore: offset + returned < snapshot.total
+    }
   };
 }
 
@@ -116,6 +126,7 @@ export async function writeFrontmatter(vaultPath, notePath, fields, options = {}
 
   if (!dryRun) {
     await writeFile(fullPath, nextContent, 'utf-8');
+    invalidateSnapshotsForVault(vaultPath);
   }
 
   return {

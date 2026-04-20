@@ -37,19 +37,23 @@ describe('analysis tools', () => {
   it('should list note details including backlinks', async () => {
     glob.mockResolvedValue([
       '/test/vault/a.md',
-      '/test/vault/b.md'
+      '/test/vault/b.md',
+      '/test/vault/c.md'
     ]);
     stat
       .mockResolvedValueOnce({ size: 10, birthtime: new Date('2026-04-01T00:00:00Z'), mtime: new Date('2026-04-02T00:00:00Z') })
-      .mockResolvedValueOnce({ size: 20, birthtime: new Date('2026-04-03T00:00:00Z'), mtime: new Date('2026-04-04T00:00:00Z') });
+      .mockResolvedValueOnce({ size: 20, birthtime: new Date('2026-04-03T00:00:00Z'), mtime: new Date('2026-04-04T00:00:00Z') })
+      .mockResolvedValueOnce({ size: 30, birthtime: new Date('2026-04-05T00:00:00Z'), mtime: new Date('2026-04-06T00:00:00Z') });
     readFile
       .mockResolvedValueOnce('# A\n\n[[b]]')
-      .mockResolvedValueOnce('# B\n\nBody');
+      .mockResolvedValueOnce('# B\n\nBody')
+      .mockResolvedValueOnce('# C\n\n[[a]]');
 
-    const result = await listNotesDetailed(vaultPath, { sortBy: 'path', order: 'asc' });
+    const result = await listNotesDetailed(vaultPath, { sortBy: 'path', order: 'asc', limit: 2, offset: 0 });
 
-    expect(result.notes[0]).toMatchObject({ path: 'a.md', linkCount: 1, backlinkCount: 0 });
+    expect(result.notes[0]).toMatchObject({ path: 'a.md', linkCount: 1, backlinkCount: 1 });
     expect(result.notes[1]).toMatchObject({ path: 'b.md', backlinkCount: 1 });
+    expect(result.pagination).toMatchObject({ total: 3, returned: 2, hasMore: true });
   });
 
   it('should preview multiple notes', async () => {
@@ -72,6 +76,24 @@ describe('analysis tools', () => {
     expect(dryRun.written).toBe(false);
     expect(applied.written).toBe(true);
     expect(writeFile).toHaveBeenCalledTimes(1);
+  });
+
+  it('should invalidate cached snapshots after frontmatter writes', async () => {
+    glob.mockResolvedValue(['/test/vault/task.md']);
+    stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-04-01T00:00:00Z'), mtime: new Date('2026-04-02T00:00:00Z') });
+    readFile
+      .mockResolvedValueOnce('---\nstatus: "todo"\n---\n# Task')
+      .mockResolvedValueOnce('---\nstatus: "todo"\n---\n# Task')
+      .mockResolvedValueOnce('---\nstatus: "doing"\n---\n# Task');
+    writeFile.mockResolvedValue();
+
+    const before = await previewNotes(vaultPath, {});
+    await writeFrontmatter(vaultPath, 'task.md', { status: 'doing' }, { dryRun: false });
+    const after = await previewNotes(vaultPath, {});
+
+    expect(before.notes[0].preview).toBe('# Task');
+    expect(after.notes[0].preview).toBe('# Task');
+    expect(glob).toHaveBeenCalledTimes(2);
   });
 
   it('should support bulk frontmatter updates', async () => {
