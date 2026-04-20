@@ -163,14 +163,6 @@ Search for content across vault notes within the current scan scope.
 }
 ```
 
-### search-by-title
-Search for notes by their H1 title (# Title).
-- Title-based search over indexed note metadata
-- Case-sensitive/insensitive matching
-- Returns title, file path, and line number
-- Optional path filtering
-- Only matches H1 headings (single #)
-
 ### search-by-filename
 Search for notes by filename, stem, or vault-relative path.
 - Useful when the note filename is known but the H1 title differs
@@ -244,11 +236,6 @@ Discover MOCs (Maps of Content) to inspect your vault's knowledge structure.
 - Shows MOC hierarchy (which MOCs link to other MOCs)
 - Displays normalized wikilink targets from each MOC
 
-### search-links-to
-Return backlink sources for one target note.
-- Resolves the target by exact path or unique filename
-- Shows which notes link to it and the raw wikilink targets they use
-
 ### preview-move-impact
 Preview backlink fallout before moving or renaming a note.
 - Highlights links that would stop resolving after the move
@@ -259,12 +246,6 @@ Preview or apply multiple note moves in one call.
 - `dryRun: true` is the safe default
 - Validates all moves before writing
 - Attempts rollback if a move fails after earlier moves succeeded
-
-### find-broken-links
-Return unresolved wikilinks across the scan scope.
-- Useful after batch moves or renames
-- Provides a structural summary of your vault's organization
-- Filter by MOC name or directory
 
 **Why use MOCs?**
 - **Context**: See what knowledge areas exist in your vault
@@ -294,9 +275,9 @@ This tool gives agents a structural overview of the vault before blind keyword s
 These tools are aimed at vault cleanup, inventory, and preview-first bulk operations.
 
 ### Structure and note inspection
-- `get-vault-structure` - folder hierarchy with note counts
 - `list-notes-detailed` - path, created/updated timestamps, tags, size, task count, link count, backlink count
-- `preview-notes` - trimmed previews from the first N body lines of many notes without returning full documents to the client
+- `list-notes-full` - complete note path list for exact move targets
+- `list-folders` - folder tree and flat folder paths
 
 ### Frontmatter and bulk edits
 - `read-frontmatter` - return parsed frontmatter fields and parse errors
@@ -317,7 +298,8 @@ Examples:
 ### Tasks and links
 - `extract-tasks` - vault-wide task extraction with due-date detection
 - `analyze-links` - backlinks, outbound links, orphan notes, and hub notes
-- `collect-task-styles` - task marker and completion style drift detection
+- `preview-move-impact` - backlink fallout preview before renames or moves
+- `move-many` - preview-first batch move execution with rollback attempts
 
 Examples:
 ```json
@@ -331,22 +313,10 @@ Examples:
 ```
 
 ### Detection and audits
-- `detect-daily-notes` - heuristically classify daily, journal, thino, and log-style notes
-- `detect-similar-notes` - title similarity for duplicate discovery
-- `detect-large-notes` - oversized notes by size or line count
-- `detect-unorganized-notes` - missing tags, missing frontmatter, isolated notes, and root clutter
 - `vault-inventory` - one-shot vault summary with note counts, top tags, tasks, orphans, large notes, and recent notes
 - `task-audit` - missing due dates, task hotspots, completion-style drift, and missing `project` frontmatter
-- `daily-journal-audit` - heuristic daily/journal entry points and memo migration candidates
-- `propose-note-refactors` - proposal-only refactor mode for moves, renames, and linking suggestions
 
 Examples:
-```json
-{ "directory": "Daily" }
-```
-```json
-{ "directory": "Projects", "threshold": 0.7 }
-```
 ```json
 { "directory": "Projects", "hotspotThreshold": 15 }
 ```

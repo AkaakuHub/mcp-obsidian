@@ -1,5 +1,5 @@
-import { Errors } from './errors.js';
 import { moveNote } from './note-io-tools.js';
+import { Errors } from './errors.js';
 import { buildMovePlan, createAliasMap, flattenFolderTree, resolveLinkTarget, resolveNoteReference, validateDestinationPath } from './reorganization-core.js';
 import { buildFolderTree, buildLinkGraph, getVaultSnapshot } from './vault-analysis.js';
 import { validateRequiredParameters } from './validation.js';
@@ -35,34 +35,6 @@ export async function listFolders(vaultPath, options = {}) {
     folderCount: paths.length,
     folders,
     paths
-  };
-}
-
-export async function searchLinksTo(vaultPath, options = {}) {
-  const { targetPath, directory = null } = options;
-  const paramValidation = validateRequiredParameters({ targetPath }, ['targetPath']);
-  assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
-
-  const snapshot = await getVaultSnapshot(vaultPath, { directory });
-  const graph = buildLinkGraph(snapshot.notes);
-  const targetNote = resolveNoteReference(snapshot, targetPath);
-  const targetNode = graph.nodes.find((node) => node.path === targetNote.path);
-
-  const links = graph.nodes
-    .filter((node) => targetNode.inboundLinks.includes(node.path))
-    .map((node) => ({
-      path: node.path,
-      matchingTargets: node.outboundLinks
-        .filter((link) => link.resolvedPath === targetNote.path)
-        .map((link) => link.target),
-      linkCount: node.outboundLinks.filter((link) => link.resolvedPath === targetNote.path).length
-    }));
-
-  return {
-    targetPath,
-    resolvedPath: targetNote.path,
-    inboundCount: targetNode.inboundCount,
-    links
   };
 }
 
@@ -112,33 +84,6 @@ export async function previewMoveImpact(vaultPath, options = {}) {
     affectedLinkCount: affectedLinks.length,
     affectedLinks,
     sourceOutboundLinks: sourceNode.outboundLinks
-  };
-}
-
-export async function findBrokenLinks(vaultPath, options = {}) {
-  const { directory = null } = options;
-  const snapshot = await getVaultSnapshot(vaultPath, { directory });
-  const graph = buildLinkGraph(snapshot.notes);
-
-  const links = graph.nodes.flatMap((node) => node.outboundLinks
-    .filter((link) => !link.resolvedPath)
-    .map((link) => ({
-      path: node.path,
-      target: link.target
-    })));
-
-  const summaryByNote = graph.nodes
-    .map((node) => ({
-      path: node.path,
-      brokenCount: node.outboundLinks.filter((link) => !link.resolvedPath).length
-    }))
-    .filter((node) => node.brokenCount > 0)
-    .sort((left, right) => right.brokenCount - left.brokenCount || left.path.localeCompare(right.path));
-
-  return {
-    links,
-    count: links.length,
-    summaryByNote
   };
 }
 

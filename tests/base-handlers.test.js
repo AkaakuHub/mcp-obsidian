@@ -8,7 +8,6 @@ vi.mock('../src/tools.js', () => ({
   readResolvedNote: vi.fn(),
   searchByFilename: vi.fn(),
   searchByTags: vi.fn(),
-  searchByTitle: vi.fn(),
   searchVault: vi.fn(),
   writeNote: vi.fn(),
   moveNote: vi.fn(),

@@ -1,6 +1,5 @@
 export {
   searchVault,
-  searchByTitle,
   searchByFilename,
   listNotes,
   readResolvedNote,

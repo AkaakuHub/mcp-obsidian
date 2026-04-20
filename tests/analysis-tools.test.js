@@ -5,7 +5,7 @@ vi.mock('glob');
 
 import { readFile, stat, writeFile } from 'fs/promises';
 import { glob } from 'glob';
-import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, getVaultStructure, listNotesDetailed, previewNotes, readFrontmatter, writeFrontmatter } from '../src/analysis-tools.js';
+import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, listNotesDetailed, readFrontmatter, writeFrontmatter } from '../src/analysis-tools.js';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('analysis tools', () => {
@@ -19,24 +19,6 @@ describe('analysis tools', () => {
       birthtime: new Date('2026-04-01T00:00:00Z'),
       mtime: new Date('2026-04-02T00:00:00Z')
     });
-  });
-
-  it('should build folder hierarchy', async () => {
-    glob.mockResolvedValue([
-      '/test/vault/projects/a.md',
-      '/test/vault/projects/nested/b.md',
-      '/test/vault/journal/2026-04-20.md'
-    ]);
-    stat.mockResolvedValue({ size: 10, birthtime: new Date('2026-04-01T00:00:00Z'), mtime: new Date('2026-04-02T00:00:00Z') });
-    readFile.mockResolvedValue('# Note');
-
-    const result = await getVaultStructure(vaultPath);
-
-    expect(result.noteCount).toBe(3);
-    expect(result.folders).toEqual([
-      expect.objectContaining({ path: 'journal', noteCount: 1 }),
-      expect.objectContaining({ path: 'projects', noteCount: 2 })
-    ]);
   });
 
   it('should list note details including backlinks', async () => {
@@ -59,16 +41,6 @@ describe('analysis tools', () => {
     expect(result.notes[0]).toMatchObject({ path: 'a.md', linkCount: 1, backlinkCount: 1 });
     expect(result.notes[1]).toMatchObject({ path: 'b.md', backlinkCount: 1 });
     expect(result.pagination).toMatchObject({ total: 3, returned: 2, hasMore: true });
-  });
-
-  it('should preview multiple notes', async () => {
-    glob.mockResolvedValue(['/test/vault/a.md']);
-    stat.mockResolvedValue({ size: 10, birthtime: new Date('2026-04-01T00:00:00Z'), mtime: new Date('2026-04-02T00:00:00Z') });
-    readFile.mockResolvedValue('---\nstatus: active\n---\n# A\n\nline1\nline2');
-
-    const result = await previewNotes(vaultPath, { previewLines: 2 });
-
-    expect(result.notes[0].preview).toBe('# A');
   });
 
   it('should dry-run and apply frontmatter updates', async () => {
@@ -123,12 +95,12 @@ describe('analysis tools', () => {
       .mockResolvedValueOnce('---\nstatus: "doing"\n---\n# Task');
     writeFile.mockResolvedValue();
 
-    const before = await previewNotes(vaultPath, {});
+    const before = await listNotesDetailed(vaultPath, {});
     await writeFrontmatter(vaultPath, 'task.md', { status: 'doing' }, { dryRun: false });
-    const after = await previewNotes(vaultPath, {});
+    const after = await listNotesDetailed(vaultPath, {});
 
-    expect(before.notes[0].preview).toBe('# Task');
-    expect(after.notes[0].preview).toBe('# Task');
+    expect(before.notes[0].path).toBe('task.md');
+    expect(after.notes[0].path).toBe('task.md');
     expect(glob).toHaveBeenCalledTimes(2);
   });
 

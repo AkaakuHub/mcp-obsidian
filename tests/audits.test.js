@@ -7,14 +7,8 @@ vi.mock('../src/vault-analysis.js', () => ({
 
 import { buildLinkGraph, getVaultSnapshot } from '../src/vault-analysis.js';
 import {
-  auditDailyJournal,
   auditTasks,
-  buildVaultInventory,
-  detectDailyNotes,
-  detectLargeNotes,
-  detectSimilarNotes,
-  detectUnorganizedNotes,
-  proposeNoteRefactors
+  buildVaultInventory
 } from '../src/audits.js';
 
 describe('audits', () => {
@@ -22,79 +16,6 @@ describe('audits', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('should detect daily and journal style notes', async () => {
-    getVaultSnapshot.mockResolvedValue({
-      notes: [
-        { path: 'daily/2026-04-20.md', title: 'Daily', stem: '2026-04-20' },
-        { path: 'journal/logbook.md', title: 'Journal', stem: 'logbook' },
-        { path: 'thino-capture.md', title: 'Capture', stem: 'thino-capture' },
-        { path: 'notes/idea.md', title: 'Idea', stem: 'idea' }
-      ]
-    });
-
-    const result = await detectDailyNotes(vaultPath);
-
-    expect(result.count).toBe(3);
-    expect(result.notes).toEqual([
-      expect.objectContaining({ path: 'daily/2026-04-20.md', category: 'daily' }),
-      expect.objectContaining({ path: 'journal/logbook.md', category: 'journal' }),
-      expect.objectContaining({ path: 'thino-capture.md', category: 'thino' })
-    ]);
-  });
-
-  it('should detect similar notes by title tokens', async () => {
-    getVaultSnapshot.mockResolvedValue({
-      notes: [
-        { path: 'a.md', title: 'Project Alpha Plan', stem: 'a' },
-        { path: 'b.md', title: 'Project Alpha Notes', stem: 'b' },
-        { path: 'c.md', title: 'Cooking Ideas', stem: 'c' }
-      ]
-    });
-
-    const result = await detectSimilarNotes(vaultPath, { threshold: 0.5 });
-
-    expect(result.count).toBe(1);
-    expect(result.pairs[0]).toMatchObject({ left: 'a.md', right: 'b.md', score: 0.5 });
-  });
-
-  it('should detect large notes by size or line count', async () => {
-    getVaultSnapshot.mockResolvedValue({
-      notes: [
-        { path: 'big.md', sizeBytes: 80000, lineCount: 100, taskCount: 5 },
-        { path: 'long.md', sizeBytes: 1000, lineCount: 1200, taskCount: 2 },
-        { path: 'small.md', sizeBytes: 1000, lineCount: 10, taskCount: 0 }
-      ]
-    });
-
-    const result = await detectLargeNotes(vaultPath, { minSizeBytes: 50000, minLineCount: 800 });
-
-    expect(result.count).toBe(2);
-    expect(result.notes.map((note) => note.path)).toEqual(['big.md', 'long.md']);
-  });
-
-  it('should detect unorganized notes from metadata and link graph', async () => {
-    getVaultSnapshot.mockResolvedValue({
-      notes: [
-        { path: 'root.md', directory: '', hasFrontmatter: false, tags: [], linkCount: 0, stem: 'root', links: [] },
-        { path: 'projects/linked.md', directory: 'projects', hasFrontmatter: true, tags: ['project'], linkCount: 1, stem: 'linked', links: ['root'] }
-      ]
-    });
-    buildLinkGraph.mockReturnValue({
-      nodes: [
-        { path: 'root.md', inboundCount: 0 },
-        { path: 'projects/linked.md', inboundCount: 0 }
-      ]
-    });
-
-    const result = await detectUnorganizedNotes(vaultPath);
-
-    expect(result.count).toBe(1);
-    expect(result.notes[0]).toEqual({
-      path: 'root.md',
-      reasons: ['missing-frontmatter', 'missing-tags', 'isolated', 'root-level']
-    });
   });
 
   it('should build vault inventory summary', async () => {
@@ -175,75 +96,4 @@ describe('audits', () => {
     ]);
   });
 
-  it('should audit daily journal entry points and memo migration candidates', async () => {
-    getVaultSnapshot.mockResolvedValue({
-      notes: [
-        {
-          path: 'daily/2026-04-20.md',
-          stem: '2026-04-20',
-          updatedAt: '2026-04-20T00:00:00.000Z',
-          title: 'Daily',
-          tags: ['daily']
-        },
-        {
-          path: 'notes/memo-capture.md',
-          stem: 'memo-capture',
-          updatedAt: '2026-04-19T00:00:00.000Z',
-          title: 'Memo',
-          tags: []
-        },
-        {
-          path: 'journal/weekly.md',
-          stem: 'weekly',
-          updatedAt: '2026-04-18T00:00:00.000Z',
-          title: 'Weekly',
-          tags: ['journal']
-        }
-      ]
-    });
-
-    const result = await auditDailyJournal(vaultPath);
-
-    expect(result.entryPoints).toEqual([
-      expect.objectContaining({ path: 'daily/2026-04-20.md', category: 'daily' }),
-      expect.objectContaining({ path: 'journal/weekly.md', category: 'journal' })
-    ]);
-    expect(result.dailyReadyNotes).toEqual(['daily/2026-04-20.md', 'journal/weekly.md']);
-    expect(result.migrationCandidates).toEqual([{ path: 'notes/memo-capture.md', suggestedCategory: 'journal' }]);
-  });
-
-  it('should propose refactors without applying changes', async () => {
-    getVaultSnapshot.mockResolvedValue({
-      notes: [
-        {
-          path: 'Idea.md',
-          directory: '',
-          frontmatter: { area: 'areas/work' },
-          title: 'Better Idea',
-          tags: []
-        },
-        {
-          path: 'projects/alpha.md',
-          directory: 'projects',
-          frontmatter: {},
-          title: 'Alpha Plan',
-          tags: []
-        }
-      ]
-    });
-    buildLinkGraph.mockReturnValue({
-      orphans: ['Idea.md']
-    });
-
-    const result = await proposeNoteRefactors(vaultPath);
-
-    expect(result.mode).toBe('proposal-only');
-    expect(result.suggestionCount).toBe(4);
-    expect(result.suggestions).toEqual([
-      expect.objectContaining({ type: 'move', path: 'Idea.md', proposedPath: 'areas/work/Idea.md' }),
-      expect.objectContaining({ type: 'rename', path: 'Idea.md', proposedPath: 'Better Idea.md' }),
-      expect.objectContaining({ type: 'link', path: 'Idea.md', reason: 'isolated-note' }),
-      expect.objectContaining({ type: 'rename', path: 'projects/alpha.md', proposedPath: 'projects/Alpha Plan.md' })
-    ]);
-  });
 });

@@ -5,7 +5,7 @@ import { mapWithConcurrency } from './async.js';
 import { config } from './config.js';
 import { Errors } from './errors.js';
 import { extractWikilinks } from './links.js';
-import { extractFrontmatter, extractNoteMetadata } from './metadata.js';
+import { extractNoteMetadata } from './metadata.js';
 import { extractTasksFromContent } from './task-analysis.js';
 import { extractTags } from './tags.js';
 import { getCachedSnapshot, setCachedSnapshot } from './vault-cache.js';
@@ -31,15 +31,6 @@ export async function listMarkdownFiles(vaultPath, directory = null) {
 
   const files = await glob(searchPattern);
   return files.sort();
-}
-
-export function buildPreview(content, previewLines) {
-  const { contentWithoutFrontmatter } = extractFrontmatter(content);
-  return contentWithoutFrontmatter
-    .split('\n')
-    .slice(0, previewLines)
-    .join('\n')
-    .trim();
 }
 
 async function buildNoteRecord(vaultPath, file, options = {}) {

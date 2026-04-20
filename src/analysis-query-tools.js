@@ -1,19 +1,6 @@
 import { Errors } from './errors.js';
-import { collectTaskStyleVariants, summarizeTasks } from './task-analysis.js';
-import { buildFolderTree, buildLinkGraph, buildPreview, getVaultSnapshot, scanVaultNotes } from './vault-analysis.js';
-
-export async function getVaultStructure(vaultPath, options = {}) {
-  const { directory = null } = options;
-  const snapshot = await getVaultSnapshot(vaultPath, { directory });
-  const folders = buildFolderTree(snapshot.notes.map((note) => note.path));
-
-  return {
-    root: directory || '',
-    folderCount: folders.length,
-    noteCount: snapshot.notes.length,
-    folders
-  };
-}
+import { summarizeTasks } from './task-analysis.js';
+import { buildLinkGraph, getVaultSnapshot } from './vault-analysis.js';
 
 export async function listNotesDetailed(vaultPath, options = {}) {
   const { directory = null, limit = 100, offset = 0, sortBy = 'updatedAt', order = 'desc' } = options;
@@ -63,22 +50,6 @@ export async function listNotesDetailed(vaultPath, options = {}) {
   };
 }
 
-export async function previewNotes(vaultPath, options = {}) {
-  const { directory = null, limit = 50, offset = 0, previewLines = 20 } = options;
-  const scan = await scanVaultNotes(vaultPath, { directory, limit, offset, includeContent: true });
-
-  return {
-    notes: scan.notes.map((note) => ({
-      path: note.path,
-      title: note.title,
-      preview: buildPreview(note.content || '', previewLines)
-    })),
-    count: scan.notes.length,
-    errors: scan.errors,
-    pagination: scan.pagination
-  };
-}
-
 export async function extractTasks(vaultPath, options = {}) {
   const { directory = null, includeCompleted = true, limit = 500, offset = 0 } = options;
   const scan = await getVaultSnapshot(vaultPath, { directory, includeContent: true });
@@ -125,16 +96,5 @@ export async function analyzeLinks(vaultPath, options = {}) {
     hubCount: graph.hubs.length,
     orphans: graph.orphans,
     hubs: graph.hubs
-  };
-}
-
-export async function collectTaskStyles(vaultPath, options = {}) {
-  const { directory = null } = options;
-  const scan = await getVaultSnapshot(vaultPath, { directory, includeContent: true });
-  const variants = scan.notes.flatMap((note) => collectTaskStyleVariants(note.content, note.path));
-
-  return {
-    variants,
-    count: variants.length
   };
 }

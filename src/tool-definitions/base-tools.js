@@ -33,36 +33,6 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'search-by-title',
-    title: 'Search by Title',
-    description: 'Search notes by their first H1 heading only. Useful when filenames are noisy but note titles are curated.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        query: { type: 'string', minLength: 1, description: 'Substring to match against note H1 titles.' },
-        path: { type: 'string', description: 'Optional vault-relative directory to limit the search scope.' },
-        caseSensitive: { type: 'boolean', default: false, description: 'Match title casing exactly when true.' },
-        limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000, description: 'Maximum number of notes to return.' },
-        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of matching notes to skip for pagination.' }
-      },
-      required: ['query'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        results: { type: 'array' },
-        count: { type: 'integer' },
-        filesSearched: { type: 'integer' },
-        pagination: { type: 'object' }
-      },
-      required: ['results', 'count', 'filesSearched', 'pagination'],
-      additionalProperties: false
-    }
-  },
-  {
     name: 'search-by-filename',
     title: 'Search by Filename',
     description: 'Search notes by filename, stem, or vault-relative path. Use this when the note name is known but the H1 title may differ.',

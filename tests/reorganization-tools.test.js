@@ -11,12 +11,10 @@ import { glob } from 'glob';
 import { moveNote } from '../src/note-io-tools.js';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 import {
-  findBrokenLinks,
   listFolders,
   listNotesFull,
   moveMany,
-  previewMoveImpact,
-  searchLinksTo
+  previewMoveImpact
 } from '../src/reorganization-tools.js';
 
 describe('reorganization tools', () => {
@@ -73,17 +71,6 @@ describe('reorganization tools', () => {
     expect(result.folders[0].path).toBe('folder');
   });
 
-  it('finds backlinks to a note', async () => {
-    const result = await searchLinksTo(vaultPath, { targetPath: 'source.md' });
-
-    expect(result.resolvedPath).toBe('folder/source.md');
-    expect(result.inboundCount).toBe(2);
-    expect(result.links).toEqual([
-      { path: 'inbox/ref.md', matchingTargets: ['folder/source'], linkCount: 1 },
-      { path: 'inbox/stem-ref.md', matchingTargets: ['source'], linkCount: 1 }
-    ]);
-  });
-
   it('previews backlinks that would break after moving a note', async () => {
     const result = await previewMoveImpact(vaultPath, {
       sourcePath: 'source.md',
@@ -100,18 +87,6 @@ describe('reorganization tools', () => {
         willBreak: true
       }
     ]);
-  });
-
-  it('finds unresolved wikilinks', async () => {
-    const result = await findBrokenLinks(vaultPath);
-
-    expect(result.count).toBe(2);
-    expect(result.links).toEqual(
-      expect.arrayContaining([
-        { path: 'folder/source.md', target: 'other' },
-        { path: 'ref-broken.md', target: 'missing-note' }
-      ])
-    );
   });
 
   it('validates batch moves in dry-run mode', async () => {
