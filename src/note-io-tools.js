@@ -5,7 +5,7 @@ import path from 'path';
 import { Errors, MCPError } from './errors.js';
 import { config } from './config.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
-import { searchTitlesWithSnapshot, searchVaultWithSnapshot } from './search-tools.js';
+import { searchFilenamesWithSnapshot, searchTitlesWithSnapshot, searchVaultWithSnapshot } from './search-tools.js';
 import { paginateArray } from './search.js';
 import {
   validatePathWithinBase,
@@ -28,6 +28,10 @@ export async function searchVault(vaultPath, query, searchPath, caseSensitive = 
 
 export async function searchByTitle(vaultPath, query, searchPath, caseSensitive = false, limit = 100, offset = 0) {
   return searchTitlesWithSnapshot(vaultPath, query, searchPath, caseSensitive, limit, offset);
+}
+
+export async function searchByFilename(vaultPath, query, searchPath, caseSensitive = false, limit = 100, offset = 0) {
+  return searchFilenamesWithSnapshot(vaultPath, query, searchPath, caseSensitive, limit, offset);
 }
 
 export async function listNotes(vaultPath, directory, limit = 100, offset = 0) {

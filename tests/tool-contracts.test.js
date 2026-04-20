@@ -4,6 +4,7 @@ import Ajv from 'ajv';
 vi.mock('../src/tools.js', () => ({
   searchVault: vi.fn(),
   searchByTitle: vi.fn(),
+  searchByFilename: vi.fn(),
   listNotes: vi.fn(),
   readResolvedNote: vi.fn(),
   writeNote: vi.fn(),
@@ -69,6 +70,12 @@ const outputSamples = {
   },
   'search-by-title': {
     results: [{ file: 'note.md', title: 'Note', line: 1 }],
+    count: 1,
+    filesSearched: 1,
+    pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
+  },
+  'search-by-filename': {
+    results: [{ file: 'folder/note.md', filename: 'note.md', stem: 'note', title: 'Note' }],
     count: 1,
     filesSearched: 1,
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
@@ -252,6 +259,7 @@ const outputSamples = {
 const toolArgs = {
   'search-vault': { query: 'match' },
   'search-by-title': { query: 'note' },
+  'search-by-filename': { query: 'note.md' },
   'list-notes': {},
   'read-note': { path: 'note.md' },
   'write-note': { path: 'note.md', content: '# Note' },
@@ -286,6 +294,7 @@ describe('tool contracts', () => {
     vi.clearAllMocks();
     tools.searchVault.mockResolvedValue(outputSamples['search-vault']);
     tools.searchByTitle.mockResolvedValue(outputSamples['search-by-title']);
+    tools.searchByFilename.mockResolvedValue(outputSamples['search-by-filename']);
     tools.listNotes.mockResolvedValue(outputSamples['list-notes']);
     tools.readResolvedNote.mockResolvedValue(outputSamples['read-note']);
     tools.writeNote.mockResolvedValue('note.md');

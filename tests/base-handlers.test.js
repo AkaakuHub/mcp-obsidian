@@ -6,6 +6,7 @@ vi.mock('../src/tools.js', () => ({
   listNotes: vi.fn(),
   readNote: vi.fn(),
   readResolvedNote: vi.fn(),
+  searchByFilename: vi.fn(),
   searchByTags: vi.fn(),
   searchByTitle: vi.fn(),
   searchVault: vi.fn(),

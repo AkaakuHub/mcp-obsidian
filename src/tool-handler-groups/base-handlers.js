@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { deleteNote, discoverMocs, getNoteMetadata, listNotes, readResolvedNote, searchByTags, searchByTitle, searchVault, writeNote } from '../tools.js';
+import { deleteNote, discoverMocs, getNoteMetadata, listNotes, readResolvedNote, searchByFilename, searchByTags, searchByTitle, searchVault, writeNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -21,6 +21,11 @@ export function createBaseHandlers(vaultPath) {
       const { query, path: searchPath, caseSensitive = false, limit = 100, offset = 0 } = args;
       const result = await searchByTitle(vaultPath, query, searchPath, caseSensitive, limit, offset);
       return structuredResponse(result, `Found ${result.count} notes matching title "${query}"`, createMetadata(startTime, { tool: toolName, filesSearched: result.filesSearched || 0 }));
+    },
+    'search-by-filename': async (args, startTime, toolName) => {
+      const { query, path: searchPath, caseSensitive = false, limit = 100, offset = 0 } = args;
+      const result = await searchByFilename(vaultPath, query, searchPath, caseSensitive, limit, offset);
+      return structuredResponse(result, `Found ${result.count} notes matching filename "${query}"`, createMetadata(startTime, { tool: toolName, filesSearched: result.filesSearched || 0 }));
     },
     'list-notes': async (args, startTime, toolName) => {
       const { directory, limit = 100, offset = 0 } = args;

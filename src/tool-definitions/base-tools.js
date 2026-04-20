@@ -63,6 +63,36 @@ export const baseToolDefinitions = [
     }
   },
   {
+    name: 'search-by-filename',
+    title: 'Search by Filename',
+    description: 'Search notes by filename, stem, or vault-relative path. Use this when the note name is known but the H1 title may differ.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        query: { type: 'string', minLength: 1, description: 'Substring to match against note filename, stem, or path.' },
+        path: { type: 'string', description: 'Optional vault-relative directory to limit the search scope.' },
+        caseSensitive: { type: 'boolean', default: false, description: 'Match filename casing exactly when true.' },
+        limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000, description: 'Maximum number of notes to return.' },
+        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of matching notes to skip for pagination.' }
+      },
+      required: ['query'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        results: { type: 'array' },
+        count: { type: 'integer' },
+        filesSearched: { type: 'integer' },
+        pagination: { type: 'object' }
+      },
+      required: ['results', 'count', 'filesSearched', 'pagination'],
+      additionalProperties: false
+    }
+  },
+  {
     name: 'list-notes',
     title: 'List Notes',
     description: 'List markdown note paths in the vault or a specific directory without reading note contents.',

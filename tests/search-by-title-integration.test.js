@@ -28,6 +28,15 @@ describe('Search by Title MCP Integration', () => {
       expect(searchByTitleTool.inputSchema.properties.path).toBeDefined();
       expect(searchByTitleTool.inputSchema.properties.caseSensitive).toBeDefined();
     });
+
+    it('should include search-by-filename in available tools', () => {
+      const searchByFilenameTool = toolDefinitions.find(t => t.name === 'search-by-filename');
+
+      expect(searchByFilenameTool).toBeDefined();
+      expect(searchByFilenameTool.title).toBe('Search by Filename');
+      expect(searchByFilenameTool.description).toContain('filename');
+      expect(searchByFilenameTool.inputSchema.required).toEqual(['query']);
+    });
   });
 
   describe('Tool Execution', () => {

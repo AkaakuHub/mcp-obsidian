@@ -114,3 +114,48 @@ export async function searchTitlesWithSnapshot(
     pagination
   };
 }
+
+export async function searchFilenamesWithSnapshot(
+  vaultPath,
+  query,
+  searchPath,
+  caseSensitive = false,
+  limit = 100,
+  offset = 0
+) {
+  const paramValidation = validateRequiredParameters({ query }, ['query']);
+  assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
+
+  if (!query || query.trim() === '') {
+    throw Errors.invalidParams('query cannot be empty');
+  }
+
+  assertSearchPath(vaultPath, searchPath);
+
+  const normalizedQuery = caseSensitive ? query : query.toLowerCase();
+  const snapshot = await getVaultSnapshot(vaultPath, {
+    directory: searchPath || null
+  });
+
+  const results = snapshot.notes
+    .filter((note) => {
+      const candidates = caseSensitive
+        ? [note.name, note.stem, note.path]
+        : [note.name.toLowerCase(), note.stem.toLowerCase(), note.path.toLowerCase()];
+      return candidates.some((candidate) => candidate.includes(normalizedQuery));
+    })
+    .map((note) => ({
+      file: note.path,
+      filename: note.name,
+      stem: note.stem,
+      title: note.title
+    }));
+
+  const { items: paginatedResults, pagination } = paginateArray(results, limit, offset);
+  return {
+    results: paginatedResults,
+    count: paginatedResults.length,
+    filesSearched: snapshot.total,
+    pagination
+  };
+}

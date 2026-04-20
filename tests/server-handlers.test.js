@@ -4,11 +4,16 @@ import { createServer } from '../src/server.js';
 // Mock the tools module
 vi.mock('../src/tools.js', () => ({
   searchVault: vi.fn(),
+  searchByTitle: vi.fn(),
+  searchByFilename: vi.fn(),
   listNotes: vi.fn(),
   readNote: vi.fn(),
+  readResolvedNote: vi.fn(),
   writeNote: vi.fn(),
   deleteNote: vi.fn(),
-  searchByTags: vi.fn()
+  searchByTags: vi.fn(),
+  getNoteMetadata: vi.fn(),
+  discoverMocs: vi.fn()
 }));
 
 import { searchVault, listNotes, readNote, writeNote, deleteNote, searchByTags } from '../src/tools.js';

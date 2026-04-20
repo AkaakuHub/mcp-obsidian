@@ -6,6 +6,7 @@ describe('Tool Definitions', () => {
     const toolNames = toolDefinitions.map(t => t.name);
     expect(toolNames).toContain('search-vault');
     expect(toolNames).toContain('search-by-title');
+    expect(toolNames).toContain('search-by-filename');
     expect(toolNames).toContain('list-notes');
     expect(toolNames).toContain('read-note');
     expect(toolNames).toContain('write-note');
@@ -58,5 +59,8 @@ describe('Tool Definitions', () => {
     
     const titleSearchTool = toolDefinitions.find(t => t.name === 'search-by-title');
     expect(titleSearchTool.inputSchema.required).toEqual(['query']);
+
+    const filenameSearchTool = toolDefinitions.find(t => t.name === 'search-by-filename');
+    expect(filenameSearchTool.inputSchema.required).toEqual(['query']);
   });
 });

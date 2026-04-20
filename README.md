@@ -171,6 +171,14 @@ Search for notes by their H1 title (# Title).
 - Optional path filtering
 - Only matches H1 headings (single #)
 
+### search-by-filename
+Search for notes by filename, stem, or vault-relative path.
+- Useful when the note filename is known but the H1 title differs
+- Matches `My Note.md`, `My Note`, and partial path fragments
+- Case-sensitive/insensitive matching
+- Returns filename, stem, title, and file path
+- Optional path filtering
+
 ### list-notes
 List markdown files in your vault or a specific directory with pagination.
 - Returns file paths, page counts, and total count
