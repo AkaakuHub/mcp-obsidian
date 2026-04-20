@@ -211,12 +211,6 @@ Delete a note from your vault.
 - Validated deletion with proper path checks
 - Path security checks
 
-### delete-note-safe
-Preview backlinks before deleting a note.
-- `dryRun: true` by default so you can inspect impact first
-- Blocks deletion when inbound links exist unless `force: true`
-- Returns inbound and outbound link details with the delete decision
-
 ### search-by-tags
 Find notes containing specific tags.
 - Supports inline `#tags` and common frontmatter `tags` shapes

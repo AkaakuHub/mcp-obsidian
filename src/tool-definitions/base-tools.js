@@ -217,40 +217,6 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'delete-note-safe',
-    title: 'Delete Note Safe',
-    description: 'Preview backlinks before deleting a note. `dryRun: true` is the safe default, and backlink-bearing notes are blocked unless `force` is true.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path or unique markdown filename to inspect or delete.' },
-        dryRun: { type: 'boolean', default: true, description: 'When true, only preview backlink impact without deleting.' },
-        force: { type: 'boolean', default: false, description: 'Allow deletion even when inbound links exist.' }
-      },
-      required: ['path'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        path: { type: 'string' },
-        requestedPath: { type: 'string' },
-        dryRun: { type: 'boolean' },
-        force: { type: 'boolean' },
-        blocked: { type: 'boolean' },
-        deleted: { type: 'boolean' },
-        inboundLinkCount: { type: 'integer', minimum: 0 },
-        inboundLinks: { type: 'array' },
-        outboundLinkCount: { type: 'integer', minimum: 0 },
-        outboundLinks: { type: 'array' }
-      },
-      required: ['path', 'requestedPath', 'dryRun', 'force', 'blocked', 'deleted', 'inboundLinkCount', 'inboundLinks', 'outboundLinkCount', 'outboundLinks'],
-      additionalProperties: false
-    }
-  },
-  {
     name: 'search-by-tags',
     title: 'Search by Tags',
     description: 'Find notes that contain all requested tags. Searches inline `#tags` and common frontmatter `tags` forms.',

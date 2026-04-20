@@ -10,7 +10,6 @@ vi.mock('../src/tools.js', () => ({
   appendToNote: vi.fn(),
   moveNote: vi.fn(),
   deleteNote: vi.fn(),
-  deleteNoteSafe: vi.fn(),
   searchByTags: vi.fn()
 }));
 
@@ -94,18 +93,6 @@ const outputSamples = {
   'delete-note': {
     path: 'note.md',
     status: 'deleted'
-  },
-  'delete-note-safe': {
-    path: 'note.md',
-    requestedPath: 'note.md',
-    dryRun: true,
-    force: false,
-    blocked: true,
-    deleted: false,
-    inboundLinkCount: 1,
-    inboundLinks: [{ path: 'ref.md', target: 'note' }],
-    outboundLinkCount: 0,
-    outboundLinks: []
   },
   'search-by-tags': {
     notes: [{ path: 'note.md', tags: ['tag'] }],
@@ -232,7 +219,6 @@ const toolArgs = {
   'append-to-note': { path: 'note.md', content: '\n- [ ] todo' },
   'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   'delete-note': { path: 'note.md' },
-  'delete-note-safe': { path: 'note.md' },
   'search-by-tags': { tags: ['tag'] },
   'list-notes-detailed': {},
   'list-folders': {},
@@ -260,7 +246,6 @@ describe('tool contracts', () => {
     tools.appendToNote.mockResolvedValue(outputSamples['append-to-note']);
     tools.moveNote.mockResolvedValue(outputSamples['move-note']);
     tools.deleteNote.mockResolvedValue('note.md');
-    tools.deleteNoteSafe.mockResolvedValue(outputSamples['delete-note-safe']);
     tools.searchByTags.mockResolvedValue(outputSamples['search-by-tags']);
 
     analysisTools.listNotesDetailed.mockResolvedValue(outputSamples['list-notes-detailed']);

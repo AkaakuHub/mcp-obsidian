@@ -157,6 +157,35 @@ export async function writeNote(vaultPath, notePath, content) {
   }
 }
 
+function joinWithSeparator(existingContent, appendedContent, separator) {
+  if (existingContent.length === 0) {
+    return appendedContent;
+  }
+
+  if (separator.length === 0 || existingContent.endsWith(separator)) {
+    return `${existingContent}${appendedContent}`;
+  }
+
+  return `${existingContent}${separator}${appendedContent}`;
+}
+
+export async function appendToNote(vaultPath, notePath, content, options = {}) {
+  const { separator = '\n\n' } = options;
+  const paramValidation = validateRequiredParameters({ path: notePath, content }, ['path', 'content']);
+  assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
+
+  const note = await readResolvedNote(vaultPath, notePath);
+  const nextContent = joinWithSeparator(note.content, content, separator);
+  await writeNote(vaultPath, note.path, nextContent);
+
+  return {
+    path: note.path,
+    status: 'appended',
+    appendedLength: content.length,
+    newContentLength: nextContent.length
+  };
+}
+
 export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite = false) {
   const paramValidation = validateRequiredParameters(
     { sourcePath, destinationPath },

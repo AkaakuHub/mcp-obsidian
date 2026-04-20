@@ -10,12 +10,11 @@ vi.mock('../src/tools.js', () => ({
   writeNote: vi.fn(),
   appendToNote: vi.fn(),
   moveNote: vi.fn(),
-  deleteNote: vi.fn(),
-  deleteNoteSafe: vi.fn()
+  deleteNote: vi.fn()
 }));
 
 import { createBaseHandlers } from '../src/tool-handler-groups/base-handlers.js';
-import { appendToNote, deleteNote, deleteNoteSafe, moveNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
+import { appendToNote, deleteNote, moveNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
 
 describe('base handlers', () => {
   const vaultPath = '/test/vault';
@@ -86,28 +85,6 @@ describe('base handlers', () => {
       appendedLength: 6,
       newContentLength: 22
     });
-  });
-
-  it('returns structured content for delete-note-safe', async () => {
-    deleteNoteSafe.mockResolvedValue({
-      path: 'note.md',
-      requestedPath: 'note.md',
-      dryRun: true,
-      force: false,
-      blocked: true,
-      deleted: false,
-      inboundLinkCount: 1,
-      inboundLinks: [{ path: 'ref.md', target: 'note' }],
-      outboundLinkCount: 0,
-      outboundLinks: []
-    });
-    const handlers = createBaseHandlers(vaultPath);
-
-    const response = await handlers['delete-note-safe']({ path: 'note.md' }, Date.now(), 'delete-note-safe');
-
-    expect(response.structuredContent.blocked).toBe(true);
-    expect(response.structuredContent.deleted).toBe(false);
-    expect(response.structuredContent.inboundLinkCount).toBe(1);
   });
 
   it('preserves full search context in structured content', async () => {

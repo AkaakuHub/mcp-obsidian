@@ -5,13 +5,10 @@ export {
   readResolvedNote,
   readNote,
   writeNote,
+  appendToNote,
   moveNote,
   deleteNote
 } from './note-io-tools.js';
-export {
-  appendToNote,
-  deleteNoteSafe
-} from './note-maintenance-tools.js';
 export {
   searchByTags,
   extractTags

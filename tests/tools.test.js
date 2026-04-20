@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { searchVault, listNotes, readNote, writeNote, moveNote, deleteNote } from '../src/tools.js';
+import { appendToNote, searchVault, listNotes, readNote, writeNote, moveNote, deleteNote } from '../src/tools.js';
 
 // Mock fs and glob
 vi.mock('fs/promises');
@@ -285,6 +285,36 @@ describe('Tools module', () => {
       expect(before.notes[0].title).toBe('Before');
       expect(after.notes[0].title).toBe('After');
       expect(glob).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('appendToNote', () => {
+    it('should append content with the default separator', async () => {
+      access.mockResolvedValue();
+      readFile.mockResolvedValue('# Daily');
+      writeFile.mockResolvedValue();
+      mkdir.mockResolvedValue();
+
+      const result = await appendToNote(mockVaultPath, 'daily.md', '- [ ] todo');
+
+      expect(writeFile).toHaveBeenCalledWith('/test/vault/daily.md', '# Daily\n\n- [ ] todo', 'utf-8');
+      expect(result).toEqual({
+        path: 'daily.md',
+        status: 'appended',
+        appendedLength: 10,
+        newContentLength: 19
+      });
+    });
+
+    it('should append without adding a separator to an empty note', async () => {
+      access.mockResolvedValue();
+      readFile.mockResolvedValue('');
+      writeFile.mockResolvedValue();
+      mkdir.mockResolvedValue();
+
+      await appendToNote(mockVaultPath, 'inbox.md', 'hello');
+
+      expect(writeFile).toHaveBeenCalledWith('/test/vault/inbox.md', 'hello', 'utf-8');
     });
   });
 
