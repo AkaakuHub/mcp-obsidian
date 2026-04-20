@@ -20,16 +20,14 @@ This server instead works directly with Obsidian vault files on disk, making it 
 - **Direct file system access** to Obsidian vaults - no Obsidian app required
 - **Security-first design** with path traversal prevention and input validation
 - **High performance** with execution time tracking and resource limits
-- **Rich search capabilities** including regex support and tag-based search
+- **Rich search capabilities** with boolean operators, title/tag filters, and tag-based search
 - **Metadata support** with frontmatter and inline tag parsing
 - **Vault analysis tools** for folder structure, task extraction, link graph inspection, and audits
-- **MCP Resources** for HATEOAS-style discovery and navigation
 
 ## Recent Updates
 
 ### 🎉 New Features
-- **🗺️ MOC Discovery**: New `discover-mocs` tool provides a high-level map of your vault's knowledge structure by discovering Maps of Content and their relationships. **Start here for 10x faster navigation!**
-- **Resource Links**: Search results now include MCP resource links for direct note access
+- **🗺️ MOC Discovery**: New `discover-mocs` tool provides a high-level map of your vault's knowledge structure by discovering Maps of Content and their relationships.
 - **Context Snippets in Search Results**: Search results now include surrounding lines for better context understanding
 - **Match Highlighting**: Search terms are highlighted with **bold** markers in results
 - **Improved Search Result Structure**: Results are now grouped by file with match counts and snippets
@@ -50,6 +48,8 @@ pnpm dlx @modelcontextprotocol/inspector node src/index.js /home/decoder/dev/obs
 ```
 
 The inspector will open at http://localhost:5173
+
+Use the Inspector `tools/list` view to browse all available tools, descriptions, and JSON Schemas before calling anything. That is the easiest way to confirm argument names and defaults.
 
 ### Running Tests
 
@@ -118,7 +118,6 @@ Search for content across all notes in your vault.
 - Case-sensitive/insensitive search
 - **Context snippets**: See surrounding lines for each match
 - **Match highlighting**: Search terms are highlighted with **bold**
-- **Resource links**: Results include MCP resource links for direct note access
 - Returns grouped results by file with match counts
 - Optional path filtering
 
@@ -163,14 +162,12 @@ Search for notes by their H1 title (# Title).
 - Fast title-based search
 - Case-sensitive/insensitive matching
 - Returns title, file path, and line number
-- **Resource links**: Results include MCP resource links for direct note access
 - Optional path filtering
 - Only matches H1 headings (single #)
 
 ### list-notes
 List all markdown files in your vault or a specific directory.
 - Returns file paths and total count
-- **Resource links**: Results include MCP resource links for direct note access
 - Supports directory filtering
 
 ### read-note
@@ -183,7 +180,6 @@ Read the complete content of a specific note.
 
 ### write-note
 Create or update a note with new content.
-- Atomic writes for data integrity
 - Automatic directory creation
 - Content size validation
 
@@ -196,7 +192,6 @@ Delete a note from your vault.
 Find notes containing specific tags.
 - Supports both YAML frontmatter and inline #tags
 - AND operation for multiple tags
-- **Resource links**: Results include MCP resource links for direct note access
 - Case-sensitive/insensitive matching
 
 ### get-note-metadata
@@ -204,7 +199,6 @@ Get metadata for one or all notes without reading full content.
 - Single note mode: Get metadata for a specific note
 - Batch mode: Get metadata for all notes in vault
 - Extracts frontmatter, title, tags, and content preview
-- **Resource links**: Results include MCP resource links for direct note access
 - Lightweight alternative to reading full notes
 - Useful for building note indexes or dashboards
 
@@ -218,7 +212,6 @@ Get metadata for one or all notes without reading full content.
 - Shows MOC hierarchy (which MOCs link to other MOCs)
 - Displays full list of wikilinks from each MOC
 - **Provides a high-level map** of your vault's organization
-- **10x faster navigation** - understand structure before searching
 - Filter by MOC name or directory
 
 **Why use MOCs?**
@@ -242,7 +235,7 @@ Found 10 MOCs
    🔗 Links to MOCs: MCP-Framework-MOC, Development-MOC, DevOps-MOC, Tools-MOC, Work-MOC, 00-INDEX
 ```
 
-This tool enables agents to understand your knowledge graph structure instantly, making navigation ~10x faster than blind keyword searching.
+This tool gives agents a structural overview of the vault before blind keyword searching.
 
 ## New Organization And Audit Tools
 
@@ -258,9 +251,32 @@ These tools are aimed at vault cleanup, inventory, and safe bulk operations.
 - `write-frontmatter` - single-note frontmatter update with `dryRun`
 - `bulk-update-frontmatter` - multi-note frontmatter updates with `dryRun`, per-note diffs, and target counts
 
+Examples:
+```json
+{ "path": "Projects/alpha.md" }
+```
+```json
+{ "path": "Projects/alpha.md", "fields": { "status": "active", "area": "work" }, "dryRun": true }
+```
+```json
+{ "directory": "Projects", "fields": { "area": "work" }, "dryRun": true, "limit": 50 }
+```
+
 ### Tasks and links
 - `extract-tasks` - vault-wide task extraction with due-date detection
 - `analyze-links` - backlinks, outbound links, orphan notes, and hub notes
+- `collect-task-styles` - task marker and completion style drift detection
+
+Examples:
+```json
+{ "directory": "Projects", "includeCompleted": false, "limit": 200 }
+```
+```json
+{ "notePath": "Projects/alpha.md" }
+```
+```json
+{ "directory": "Projects" }
+```
 
 ### Detection and audits
 - `detect-daily-notes` - classify daily, journal, thino, and log-style notes
@@ -272,34 +288,16 @@ These tools are aimed at vault cleanup, inventory, and safe bulk operations.
 - `daily-journal-audit` - daily/journal entry points and memo migration candidates
 - `propose-note-refactors` - proposal-only safe refactor mode for moves, renames, and linking suggestions
 
-## MCP Resources
-
-This server implements MCP resource support for HATEOAS-style discovery:
-
-- **Automatic Resource Links**: All search and list tools return resource links
-- **Direct Note Access**: Use resource URIs to read notes without searching
-- **Resource URI Format**: `obsidian-note://relative/path/to/note.md`
-- **Rich Metadata**: Resource links include tags, titles, and match counts
-
-**Example**: When you search for "MCP", results include resource links:
+Examples:
 ```json
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "Found 5 matches in 2 files for \"MCP\""
-    },
-    {
-      "type": "resource_link",
-      "uri": "obsidian-note://guides/MCP-Guide.md",
-      "name": "MCP Implementation Guide",
-      "description": "3 matches | Tags: mcp, guide, development"
-    }
-  ]
-}
+{ "directory": "Daily" }
 ```
-
-Agents can then directly read the note using the resource URI, enabling seamless navigation through your knowledge base.
+```json
+{ "directory": "Projects", "threshold": 0.7 }
+```
+```json
+{ "directory": "Projects", "hotspotThreshold": 15 }
+```
 
 ## Security Features
 

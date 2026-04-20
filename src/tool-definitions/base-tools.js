@@ -2,18 +2,18 @@ export const baseToolDefinitions = [
   {
     name: 'search-vault',
     title: 'Search Vault',
-    description: 'Search for content in Obsidian vault notes. CRITICAL: Multiple space-separated terms default to AND (all required). Use OR for better results: "git OR repository OR backup" finds notes with ANY term. Search progressively: start broad (single key term), then narrow down. Don\'t give up after one try! Supports: boolean operators (AND, OR, NOT), field specifiers (title:, content:, tag:), quoted phrases, parentheses.',
+    description: 'Search note contents using boolean operators, field filters, phrases, and optional context snippets. Use `OR` explicitly when any-term matching is desired.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        query: { type: 'string', minLength: 1 },
-        path: { type: 'string' },
-        caseSensitive: { type: 'boolean', default: false },
-        includeContext: { type: 'boolean', default: true },
-        contextLines: { type: 'integer', default: 2, minimum: 0, maximum: 10 },
-        limit: { type: 'integer', default: 100, minimum: 1, maximum: 500 },
-        offset: { type: 'integer', default: 0, minimum: 0 }
+        query: { type: 'string', minLength: 1, description: 'Search expression. Space-separated terms default to AND. Supports OR, NOT, title:, content:, tag:, quoted phrases, and parentheses.' },
+        path: { type: 'string', description: 'Optional vault-relative directory to limit the search scope.' },
+        caseSensitive: { type: 'boolean', default: false, description: 'Match text with exact casing when true.' },
+        includeContext: { type: 'boolean', default: true, description: 'Include highlighted surrounding context for each match.' },
+        contextLines: { type: 'integer', default: 2, minimum: 0, maximum: 10, description: 'Number of surrounding lines to include before and after each match.' },
+        limit: { type: 'integer', default: 100, minimum: 1, maximum: 500, description: 'Maximum number of matches to return.' },
+        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of matches to skip for pagination.' }
       },
       required: ['query'],
       additionalProperties: false
@@ -35,16 +35,16 @@ export const baseToolDefinitions = [
   {
     name: 'search-by-title',
     title: 'Search by Title',
-    description: 'Search for notes by their H1 title',
+    description: 'Search notes by their first H1 heading only. Useful when filenames are noisy but note titles are curated.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        query: { type: 'string', minLength: 1 },
-        path: { type: 'string' },
-        caseSensitive: { type: 'boolean', default: false },
-        limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
-        offset: { type: 'integer', default: 0, minimum: 0 }
+        query: { type: 'string', minLength: 1, description: 'Substring to match against note H1 titles.' },
+        path: { type: 'string', description: 'Optional vault-relative directory to limit the search scope.' },
+        caseSensitive: { type: 'boolean', default: false, description: 'Match title casing exactly when true.' },
+        limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000, description: 'Maximum number of notes to return.' },
+        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of matching notes to skip for pagination.' }
       },
       required: ['query'],
       additionalProperties: false
@@ -65,14 +65,14 @@ export const baseToolDefinitions = [
   {
     name: 'list-notes',
     title: 'List Notes',
-    description: 'List all notes in the vault or a specific directory',
+    description: 'List markdown note paths in the vault or a specific directory without reading note contents.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        directory: { type: 'string' },
-        limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
-        offset: { type: 'integer', default: 0, minimum: 0 }
+        directory: { type: 'string', description: 'Optional vault-relative directory to list from.' },
+        limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000, description: 'Maximum number of note paths to return.' },
+        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of note paths to skip for pagination.' }
       },
       additionalProperties: false
     },
@@ -91,90 +91,154 @@ export const baseToolDefinitions = [
   {
     name: 'read-note',
     title: 'Read Note',
-    description: 'Read the content of a specific note',
+    description: 'Read the full content of one markdown note. Accepts an exact path or a unique filename resolved anywhere in the vault.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$' }
+        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path or unique markdown filename.' }
       },
       required: ['path'],
       additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'string'
     }
   },
   {
     name: 'write-note',
     title: 'Write Note',
-    description: 'Create or update a note',
+    description: 'Create or replace a markdown note. Parent directories are created automatically.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$' },
-        content: { type: 'string' }
+        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path to create or replace.' },
+        content: { type: 'string', description: 'Complete markdown content to write.' }
       },
       required: ['path', 'content'],
       additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'string'
     }
   },
   {
     name: 'delete-note',
     title: 'Delete Note',
-    description: 'Delete a note',
+    description: 'Delete a markdown note by vault-relative path.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$' }
+        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path to delete.' }
       },
       required: ['path'],
       additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'string'
     }
   },
   {
     name: 'search-by-tags',
     title: 'Search by Tags',
-    description: 'Search for notes by tags (supports both frontmatter and inline tags)',
+    description: 'Find notes that contain all requested tags. Searches both YAML frontmatter tags and inline `#tags`.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        tags: { type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1 },
-        directory: { type: 'string' },
-        caseSensitive: { type: 'boolean', default: false }
+        tags: { type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1, description: 'Tags to require. Matching uses AND semantics across the list.' },
+        directory: { type: 'string', description: 'Optional vault-relative directory to limit the scan scope.' },
+        caseSensitive: { type: 'boolean', default: false, description: 'Match tags with exact casing when true.' }
       },
       required: ['tags'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        notes: { type: 'array', items: { type: 'object', properties: { path: { type: 'string' }, tags: { type: 'array', items: { type: 'string' } } }, required: ['path', 'tags'], additionalProperties: false } },
+        count: { type: 'integer', minimum: 0 }
+      },
+      required: ['notes', 'count'],
       additionalProperties: false
     }
   },
   {
     name: 'get-note-metadata',
     title: 'Get Note Metadata',
-    description: 'Get metadata for a specific note or all notes in the vault',
+    description: 'Get frontmatter, title, preview, and tag metadata for one note or many notes. In batch mode, use `directory` to scope the scan.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string' },
-        batch: { type: 'boolean', default: false },
-        directory: { type: 'string' },
-        limit: { type: 'integer', default: 50, minimum: 1, maximum: 500 },
-        offset: { type: 'integer', default: 0, minimum: 0 }
+        path: { type: 'string', description: 'Single-note path, or batch directory when `batch` is true and `directory` is omitted.' },
+        batch: { type: 'boolean', default: false, description: 'When true, return metadata for many notes instead of one note.' },
+        directory: { type: 'string', description: 'Vault-relative directory to scan in batch mode. Preferred over reusing `path`.' },
+        limit: { type: 'integer', default: 50, minimum: 1, maximum: 500, description: 'Maximum number of notes to return in batch mode.' },
+        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of notes to skip in batch mode.' }
       },
       additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      anyOf: [
+        {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            frontmatter: { type: 'object' },
+            frontmatterError: { type: ['string', 'null'] },
+            title: { type: ['string', 'null'] },
+            titleLine: { type: ['integer', 'null'] },
+            hasContent: { type: 'boolean' },
+            contentLength: { type: 'integer', minimum: 0 },
+            contentPreview: { type: 'string' },
+            inlineTags: { type: 'array', items: { type: 'string' } }
+          },
+          required: ['path', 'frontmatter', 'frontmatterError', 'title', 'titleLine', 'hasContent', 'contentLength', 'contentPreview', 'inlineTags'],
+          additionalProperties: false
+        },
+        {
+          type: 'object',
+          properties: {
+            notes: { type: 'array' },
+            count: { type: 'integer', minimum: 0 },
+            errors: { type: 'array' },
+            pagination: { type: 'object' }
+          },
+          required: ['notes', 'count', 'errors', 'pagination'],
+          additionalProperties: false
+        }
+      ]
     }
   },
   {
     name: 'discover-mocs',
     title: 'Discover MOCs',
-    description: 'Discover Maps of Content and their outgoing links',
+    description: 'Discover notes tagged as MOCs and summarize their outbound note and MOC links.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        mocName: { type: 'string' },
-        directory: { type: 'string' }
+        mocName: { type: 'string', description: 'Optional specific MOC filename or basename to filter to.' },
+        directory: { type: 'string', description: 'Optional vault-relative directory to limit the scan scope.' }
       },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        mocs: { type: 'array' },
+        count: { type: 'integer', minimum: 0 }
+      },
+      required: ['mocs', 'count'],
       additionalProperties: false
     }
   }

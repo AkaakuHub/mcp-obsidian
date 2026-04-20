@@ -22,7 +22,7 @@ describe('Search by Title MCP Integration', () => {
       
       expect(searchByTitleTool).toBeDefined();
       expect(searchByTitleTool.title).toBe('Search by Title');
-      expect(searchByTitleTool.description).toBe('Search for notes by their H1 title');
+      expect(searchByTitleTool.description).toContain('H1');
       expect(searchByTitleTool.inputSchema.required).toEqual(['query']);
       expect(searchByTitleTool.inputSchema.properties.query).toBeDefined();
       expect(searchByTitleTool.inputSchema.properties.path).toBeDefined();

@@ -19,6 +19,7 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('bulk-update-frontmatter');
     expect(toolNames).toContain('extract-tasks');
     expect(toolNames).toContain('analyze-links');
+    expect(toolNames).toContain('collect-task-styles');
     expect(toolNames).toContain('vault-inventory');
     expect(toolNames).toContain('task-audit');
     expect(toolNames).toContain('daily-journal-audit');
@@ -32,6 +33,7 @@ describe('Tool Definitions', () => {
       expect(tool).toHaveProperty('inputSchema');
       expect(tool.inputSchema).toHaveProperty('type', 'object');
       expect(tool.inputSchema).toHaveProperty('properties');
+      expect(tool).toHaveProperty('outputSchema');
     });
   });
 
