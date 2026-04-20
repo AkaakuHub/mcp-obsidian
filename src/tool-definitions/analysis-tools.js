@@ -54,6 +54,57 @@ export const analysisToolDefinitions = [
     }
   },
   {
+    name: 'list-notes-full',
+    title: 'List Notes Full',
+    description: 'Return the full note path list for a vault or directory without pagination so batch reorganizations can target exact files.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        directory: { type: 'string', description: 'Optional vault-relative directory to scan.' },
+        sort: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction for returned paths.' }
+      },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        root: { type: 'string' },
+        notes: { type: 'array', items: { type: 'string' } },
+        count: { type: 'integer', minimum: 0 },
+        errors: { type: 'array' }
+      },
+      required: ['root', 'notes', 'count', 'errors'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'list-folders',
+    title: 'List Folders',
+    description: 'Return the folder tree and flattened folder paths for structural cleanup without reading note bodies.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        directory: { type: 'string', description: 'Optional vault-relative directory to treat as the root of the returned tree.' }
+      },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        root: { type: 'string' },
+        folderCount: { type: 'integer', minimum: 0 },
+        folders: { type: 'array' },
+        paths: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['root', 'folderCount', 'folders', 'paths'],
+      additionalProperties: false
+    }
+  },
+  {
     name: 'preview-notes',
     title: 'Preview Notes',
     description: 'Return a trimmed preview from the first N body lines of many notes without sending full documents.',
@@ -246,6 +297,134 @@ export const analysisToolDefinitions = [
           additionalProperties: false
         }
       ]
+    }
+  },
+  {
+    name: 'search-links-to',
+    title: 'Search Links To',
+    description: 'Return the notes that link to one target note, including the raw wikilink targets that resolve there.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        targetPath: { type: 'string', minLength: 1, description: 'Target note path or unique filename to inspect backlinks for.' },
+        directory: { type: 'string', description: 'Optional vault-relative directory to scan.' }
+      },
+      required: ['targetPath'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        targetPath: { type: 'string' },
+        resolvedPath: { type: 'string' },
+        inboundCount: { type: 'integer', minimum: 0 },
+        links: { type: 'array' }
+      },
+      required: ['targetPath', 'resolvedPath', 'inboundCount', 'links'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'preview-move-impact',
+    title: 'Preview Move Impact',
+    description: 'Preview backlinks that would stop resolving after moving or renaming a note before applying the move.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        sourcePath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Existing note path or unique markdown filename to move.' },
+        destinationPath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Proposed vault-relative destination path.' }
+      },
+      required: ['sourcePath', 'destinationPath'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        sourcePath: { type: 'string' },
+        resolvedSourcePath: { type: 'string' },
+        destinationPath: { type: 'string' },
+        renameDetected: { type: 'boolean' },
+        inboundLinkCount: { type: 'integer', minimum: 0 },
+        affectedLinkCount: { type: 'integer', minimum: 0 },
+        affectedLinks: { type: 'array' },
+        sourceOutboundLinks: { type: 'array' }
+      },
+      required: ['sourcePath', 'resolvedSourcePath', 'destinationPath', 'renameDetected', 'inboundLinkCount', 'affectedLinkCount', 'affectedLinks', 'sourceOutboundLinks'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'move-many',
+    title: 'Move Many',
+    description: 'Preview or apply a batch of note moves with upfront validation and rollback attempts if a write fails mid-run.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        moves: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            properties: {
+              sourcePath: { type: 'string', minLength: 1, pattern: '\\.md$' },
+              destinationPath: { type: 'string', minLength: 1, pattern: '\\.md$' }
+            },
+            required: ['sourcePath', 'destinationPath'],
+            additionalProperties: false
+          },
+          description: 'List of note moves to validate or apply.'
+        },
+        overwrite: { type: 'boolean', default: false, description: 'Replace existing destination notes when true.' },
+        dryRun: { type: 'boolean', default: true, description: 'When true, validate and preview without moving files.' }
+      },
+      required: ['moves'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        dryRun: { type: 'boolean' },
+        applied: { type: 'boolean' },
+        validationFailed: { type: 'boolean' },
+        rolledBack: { type: 'boolean' },
+        moveCount: { type: 'integer', minimum: 0 },
+        movedCount: { type: 'integer', minimum: 0 },
+        errors: { type: 'array' },
+        rollbackErrors: { type: 'array' },
+        results: { type: 'array' }
+      },
+      required: ['dryRun', 'applied', 'validationFailed', 'rolledBack', 'moveCount', 'movedCount', 'errors', 'rollbackErrors', 'results'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'find-broken-links',
+    title: 'Find Broken Links',
+    description: 'Return unresolved wikilinks across the vault so move or rename accidents can be audited quickly.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        directory: { type: 'string', description: 'Optional vault-relative directory to scan.' }
+      },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        links: { type: 'array' },
+        count: { type: 'integer', minimum: 0 },
+        summaryByNote: { type: 'array' }
+      },
+      required: ['links', 'count', 'summaryByNote'],
+      additionalProperties: false
     }
   },
   {

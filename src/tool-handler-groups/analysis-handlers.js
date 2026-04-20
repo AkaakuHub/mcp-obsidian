@@ -1,5 +1,9 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { analyzeLinks, bulkUpdateFrontmatter, collectTaskStyles, extractTasks, getVaultStructure, listNotesDetailed, previewNotes, readFrontmatter, writeFrontmatter } from '../analysis-tools.js';
+import { analyzeLinks, bulkUpdateFrontmatter, collectTaskStyles, extractTasks, findBrokenLinks, getVaultStructure, listFolders, listNotesDetailed, listNotesFull, moveMany, previewMoveImpact, previewNotes, readFrontmatter, searchLinksTo, writeFrontmatter } from '../analysis-tools.js';
+
+function formatLineList(items, emptyMessage) {
+  return items.length > 0 ? items.join('\n') : emptyMessage;
+}
 
 export function createAnalysisHandlers(vaultPath) {
   return {
@@ -10,6 +14,22 @@ export function createAnalysisHandlers(vaultPath) {
     'list-notes-detailed': async (args, startTime, toolName) => {
       const result = await listNotesDetailed(vaultPath, args);
       return structuredResponse(result, `Detailed listing for ${result.count} notes`, createMetadata(startTime, { tool: toolName }));
+    },
+    'list-notes-full': async (args, startTime, toolName) => {
+      const result = await listNotesFull(vaultPath, args);
+      return structuredResponse(
+        result,
+        `Listed ${result.count} note paths\n${formatLineList(result.notes, '(no notes found)')}`,
+        createMetadata(startTime, { tool: toolName })
+      );
+    },
+    'list-folders': async (args, startTime, toolName) => {
+      const result = await listFolders(vaultPath, args);
+      return structuredResponse(
+        result,
+        `Listed ${result.folderCount} folders\n${formatLineList(result.paths, '(no folders found)')}`,
+        createMetadata(startTime, { tool: toolName })
+      );
     },
     'preview-notes': async (args, startTime, toolName) => {
       const result = await previewNotes(vaultPath, args);
@@ -41,6 +61,37 @@ export function createAnalysisHandlers(vaultPath) {
     'analyze-links': async (args, startTime, toolName) => {
       const result = await analyzeLinks(vaultPath, args);
       return structuredResponse(result, args.notePath ? `Analyzed links for ${args.notePath}` : `Analyzed link graph for ${result.notes.length} notes`, createMetadata(startTime, { tool: toolName }));
+    },
+    'search-links-to': async (args, startTime, toolName) => {
+      const result = await searchLinksTo(vaultPath, args);
+      return structuredResponse(
+        result,
+        `Found ${result.inboundCount} links to ${result.resolvedPath}\n${formatLineList(result.links.map((link) => link.path), '(no linking notes found)')}`,
+        createMetadata(startTime, { tool: toolName })
+      );
+    },
+    'preview-move-impact': async (args, startTime, toolName) => {
+      const result = await previewMoveImpact(vaultPath, args);
+      return structuredResponse(result, `Previewed ${result.affectedLinkCount} affected links for move`, createMetadata(startTime, { tool: toolName }));
+    },
+    'move-many': async (args, startTime, toolName) => {
+      const result = await moveMany(vaultPath, args);
+      const description = result.validationFailed
+        ? `Batch move validation failed for ${result.errors.length} items`
+        : result.dryRun
+          ? `Dry-run batch move for ${result.moveCount} notes`
+          : result.applied
+            ? `Moved ${result.movedCount} notes`
+            : 'Batch move stopped after a failure';
+      return structuredResponse(result, description, createMetadata(startTime, { tool: toolName, dryRun: result.dryRun, applied: result.applied }));
+    },
+    'find-broken-links': async (args, startTime, toolName) => {
+      const result = await findBrokenLinks(vaultPath, args);
+      return structuredResponse(
+        result,
+        `Found ${result.count} broken links\n${formatLineList(result.links.map((link) => `${link.path} -> ${link.target}`), '(no broken links found)')}`,
+        createMetadata(startTime, { tool: toolName })
+      );
     },
     'collect-task-styles': async (args, startTime, toolName) => {
       const result = await collectTaskStyles(vaultPath, args);

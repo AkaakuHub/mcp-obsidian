@@ -16,11 +16,17 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('get-note-metadata');
     expect(toolNames).toContain('get-vault-structure');
     expect(toolNames).toContain('list-notes-detailed');
+    expect(toolNames).toContain('list-notes-full');
+    expect(toolNames).toContain('list-folders');
     expect(toolNames).toContain('preview-notes');
     expect(toolNames).toContain('write-frontmatter');
     expect(toolNames).toContain('bulk-update-frontmatter');
     expect(toolNames).toContain('extract-tasks');
     expect(toolNames).toContain('analyze-links');
+    expect(toolNames).toContain('search-links-to');
+    expect(toolNames).toContain('preview-move-impact');
+    expect(toolNames).toContain('move-many');
+    expect(toolNames).toContain('find-broken-links');
     expect(toolNames).toContain('collect-task-styles');
     expect(toolNames).toContain('vault-inventory');
     expect(toolNames).toContain('task-audit');
@@ -66,5 +72,14 @@ describe('Tool Definitions', () => {
 
     const filenameSearchTool = toolDefinitions.find(t => t.name === 'search-by-filename');
     expect(filenameSearchTool.inputSchema.required).toEqual(['query']);
+
+    const linksToTool = toolDefinitions.find(t => t.name === 'search-links-to');
+    expect(linksToTool.inputSchema.required).toEqual(['targetPath']);
+
+    const previewMoveTool = toolDefinitions.find(t => t.name === 'preview-move-impact');
+    expect(previewMoveTool.inputSchema.required).toEqual(['sourcePath', 'destinationPath']);
+
+    const moveManyTool = toolDefinitions.find(t => t.name === 'move-many');
+    expect(moveManyTool.inputSchema.required).toEqual(['moves']);
   });
 });

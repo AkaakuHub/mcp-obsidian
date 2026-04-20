@@ -184,6 +184,16 @@ List markdown files in your vault or a specific directory with pagination.
 - Returns file paths, page counts, and total count
 - Supports directory filtering
 
+### list-notes-full
+Return the complete note path list without pagination.
+- Useful when you need exact source paths for bulk reorganization
+- Returns both `structuredContent.notes` and a plain-text path list
+
+### list-folders
+Return the folder tree and flattened folder paths.
+- Useful before large-scale moves or area/project cleanup
+- Returns both the nested tree and plain-text folder paths
+
 ### read-note
 Read the complete content of a specific note.
 - **Wikilink-style resolution**: Just provide the filename (e.g., `bitwarden-cli.md`) and the server finds it anywhere in the vault
@@ -233,6 +243,26 @@ Discover MOCs (Maps of Content) to inspect your vault's knowledge structure.
 - Lists detected MOCs in the scan scope with their linked notes
 - Shows MOC hierarchy (which MOCs link to other MOCs)
 - Displays normalized wikilink targets from each MOC
+
+### search-links-to
+Return backlink sources for one target note.
+- Resolves the target by exact path or unique filename
+- Shows which notes link to it and the raw wikilink targets they use
+
+### preview-move-impact
+Preview backlink fallout before moving or renaming a note.
+- Highlights links that would stop resolving after the move
+- Useful before batch reorganization
+
+### move-many
+Preview or apply multiple note moves in one call.
+- `dryRun: true` is the safe default
+- Validates all moves before writing
+- Attempts rollback if a move fails after earlier moves succeeded
+
+### find-broken-links
+Return unresolved wikilinks across the scan scope.
+- Useful after batch moves or renames
 - Provides a structural summary of your vault's organization
 - Filter by MOC name or directory
 

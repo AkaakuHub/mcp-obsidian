@@ -18,12 +18,18 @@ vi.mock('../src/tools.js', () => ({
 vi.mock('../src/analysis-tools.js', () => ({
   getVaultStructure: vi.fn(),
   listNotesDetailed: vi.fn(),
+  listNotesFull: vi.fn(),
+  listFolders: vi.fn(),
   previewNotes: vi.fn(),
   readFrontmatter: vi.fn(),
   writeFrontmatter: vi.fn(),
   bulkUpdateFrontmatter: vi.fn(),
   extractTasks: vi.fn(),
   analyzeLinks: vi.fn(),
+  searchLinksTo: vi.fn(),
+  previewMoveImpact: vi.fn(),
+  findBrokenLinks: vi.fn(),
+  moveMany: vi.fn(),
   collectTaskStyles: vi.fn()
 }));
 
@@ -153,6 +159,18 @@ const outputSamples = {
     errors: [],
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
   },
+  'list-notes-full': {
+    root: '',
+    notes: ['a.md', 'folder/b.md'],
+    count: 2,
+    errors: []
+  },
+  'list-folders': {
+    root: '',
+    folderCount: 2,
+    folders: [{ name: 'folder', path: 'folder', depth: 1, noteCount: 1, children: [] }],
+    paths: ['folder', 'folder/sub']
+  },
   'preview-notes': {
     notes: [{ path: 'note.md', title: 'Note', preview: '# Note\nBody' }],
     count: 1,
@@ -211,6 +229,38 @@ const outputSamples = {
     hubCount: 0,
     orphans: [],
     hubs: []
+  },
+  'search-links-to': {
+    targetPath: 'note.md',
+    resolvedPath: 'notes/note.md',
+    inboundCount: 1,
+    links: [{ path: 'inbox/ref.md', matchingTargets: ['notes/note'], linkCount: 1 }]
+  },
+  'preview-move-impact': {
+    sourcePath: 'note.md',
+    resolvedSourcePath: 'notes/note.md',
+    destinationPath: 'archive/note.md',
+    renameDetected: false,
+    inboundLinkCount: 2,
+    affectedLinkCount: 1,
+    affectedLinks: [{ path: 'ref.md', target: 'notes/note', futureResolvedPath: null, willBreak: true }],
+    sourceOutboundLinks: [{ target: 'other', resolvedPath: 'other.md' }]
+  },
+  'move-many': {
+    dryRun: true,
+    applied: false,
+    validationFailed: false,
+    rolledBack: false,
+    moveCount: 2,
+    movedCount: 0,
+    errors: [],
+    rollbackErrors: [],
+    results: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md', resolvedSourcePath: 'a.md', status: 'planned', errors: [] }]
+  },
+  'find-broken-links': {
+    links: [{ path: 'ref.md', target: 'missing' }],
+    count: 1,
+    summaryByNote: [{ path: 'ref.md', brokenCount: 1 }]
   },
   'collect-task-styles': {
     variants: [{ path: 'note.md', line: 1, marker: 'x', raw: '- [x] done' }],
@@ -276,12 +326,18 @@ const toolArgs = {
   'discover-mocs': {},
   'get-vault-structure': {},
   'list-notes-detailed': {},
+  'list-notes-full': {},
+  'list-folders': {},
   'preview-notes': {},
   'read-frontmatter': { path: 'note.md' },
   'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
   'bulk-update-frontmatter': { fields: { area: 'work' } },
   'extract-tasks': {},
   'analyze-links': {},
+  'search-links-to': { targetPath: 'note.md' },
+  'preview-move-impact': { sourcePath: 'note.md', destinationPath: 'archive/note.md' },
+  'move-many': { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] },
+  'find-broken-links': {},
   'collect-task-styles': {},
   'detect-daily-notes': {},
   'detect-similar-notes': {},
@@ -313,12 +369,18 @@ describe('tool contracts', () => {
 
     analysisTools.getVaultStructure.mockResolvedValue(outputSamples['get-vault-structure']);
     analysisTools.listNotesDetailed.mockResolvedValue(outputSamples['list-notes-detailed']);
+    analysisTools.listNotesFull.mockResolvedValue(outputSamples['list-notes-full']);
+    analysisTools.listFolders.mockResolvedValue(outputSamples['list-folders']);
     analysisTools.previewNotes.mockResolvedValue(outputSamples['preview-notes']);
     analysisTools.readFrontmatter.mockResolvedValue(outputSamples['read-frontmatter']);
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);
     analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-update-frontmatter']);
     analysisTools.extractTasks.mockResolvedValue(outputSamples['extract-tasks']);
     analysisTools.analyzeLinks.mockResolvedValue(outputSamples['analyze-links']);
+    analysisTools.searchLinksTo.mockResolvedValue(outputSamples['search-links-to']);
+    analysisTools.previewMoveImpact.mockResolvedValue(outputSamples['preview-move-impact']);
+    analysisTools.moveMany.mockResolvedValue(outputSamples['move-many']);
+    analysisTools.findBrokenLinks.mockResolvedValue(outputSamples['find-broken-links']);
     analysisTools.collectTaskStyles.mockResolvedValue(outputSamples['collect-task-styles']);
 
     audits.detectDailyNotes.mockResolvedValue(outputSamples['detect-daily-notes']);
