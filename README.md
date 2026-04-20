@@ -36,7 +36,7 @@ This server instead works directly with Obsidian vault files on disk, making it 
 ## Installation
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Usage
@@ -45,7 +45,7 @@ npm install
 
 ```bash
 # Replace /home/decoder/dev/obsidian/decoder with your vault path
-npx @modelcontextprotocol/inspector node src/index.js /home/decoder/dev/obsidian/decoder
+pnpm dlx @modelcontextprotocol/inspector node src/index.js /home/decoder/dev/obsidian/decoder
 ```
 
 The inspector will open at http://localhost:5173
@@ -54,22 +54,22 @@ The inspector will open at http://localhost:5173
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm run test:watch
 
 # Run tests with coverage report
-npm run test:coverage
+pnpm run test:coverage
 
 # Run tests with coverage and check thresholds
-npm run coverage
+pnpm run coverage
 
 # Run mutation testing (all files)
-npm run test:mutation
+pnpm run test:mutation
 
 # Run mutation testing (pagination code only - faster)
-npm run test:mutation-pagination
+pnpm run test:mutation-pagination
 ```
 
 ### Adding to Claude Desktop
@@ -82,7 +82,7 @@ git clone https://github.com/Piotr1215/mcp-obsidian.git
 cd mcp-obsidian
 
 # Install dependencies
-npm install
+pnpm install
 
 # Add to Claude (replace /path/to/your/vault with your Obsidian vault path)
 claude mcp add obsidian -s user -- node /path/to/mcp-obsidian/src/index.js /path/to/your/vault
@@ -286,8 +286,8 @@ See [MCP_SPEC_COMPLIANCE.md](./MCP_SPEC_COMPLIANCE.md) for detailed compliance i
 
 ## Contributing
 
-1. Ensure all tests pass: `npm test`
-2. Maintain test coverage above 90%: `npm run coverage`
+1. Ensure all tests pass: `pnpm test`
+2. Maintain test coverage above 90%: `pnpm run coverage`
 3. Follow functional programming principles
 4. Add tests for new features
 5. Update documentation as needed
