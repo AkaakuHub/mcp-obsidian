@@ -5,7 +5,7 @@ vi.mock('glob');
 
 import { readFile, stat, writeFile } from 'fs/promises';
 import { glob } from 'glob';
-import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, getVaultStructure, listNotesDetailed, previewNotes, writeFrontmatter } from '../src/analysis-tools.js';
+import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, getVaultStructure, listNotesDetailed, previewNotes, readFrontmatter, writeFrontmatter } from '../src/analysis-tools.js';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('analysis tools', () => {
@@ -14,6 +14,11 @@ describe('analysis tools', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1024,
+      birthtime: new Date('2026-04-01T00:00:00Z'),
+      mtime: new Date('2026-04-02T00:00:00Z')
+    });
   });
 
   it('should build folder hierarchy', async () => {
@@ -76,6 +81,37 @@ describe('analysis tools', () => {
     expect(dryRun.written).toBe(false);
     expect(applied.written).toBe(true);
     expect(writeFile).toHaveBeenCalledTimes(1);
+  });
+
+  it('should expose frontmatter parse errors on read', async () => {
+    readFile.mockResolvedValue('---\ntags: [broken\n---\n# Task');
+
+    const result = await readFrontmatter(vaultPath, 'task.md');
+
+    expect(result.frontmatter).toEqual({});
+    expect(result.parseError).toContain('Flow sequence');
+  });
+
+  it('should reject frontmatter writes when existing YAML is invalid', async () => {
+    readFile.mockResolvedValue('---\ntags: [broken\n---\n# Task');
+
+    await expect(writeFrontmatter(vaultPath, 'task.md', { status: 'doing' }, { dryRun: false }))
+      .rejects
+      .toThrow('Invalid frontmatter:');
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it('should reject frontmatter mutations for oversized notes', async () => {
+    stat.mockResolvedValue({
+      size: 11 * 1024 * 1024,
+      birthtime: new Date('2026-04-01T00:00:00Z'),
+      mtime: new Date('2026-04-02T00:00:00Z')
+    });
+
+    await expect(writeFrontmatter(vaultPath, 'task.md', { status: 'doing' }, { dryRun: true }))
+      .rejects
+      .toThrow('File too large');
+    expect(readFile).not.toHaveBeenCalled();
   });
 
   it('should invalidate cached snapshots after frontmatter writes', async () => {
@@ -142,6 +178,26 @@ describe('analysis tools', () => {
     expect(result.rolledBack).toBe(true);
     expect(result.updatedCount).toBe(0);
     expect(writeFile).toHaveBeenCalledTimes(3);
+  });
+
+  it('should report rollback errors instead of throwing', async () => {
+    readFile
+      .mockResolvedValueOnce('# A')
+      .mockResolvedValueOnce('# B');
+    writeFile
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error('Disk full'))
+      .mockRejectedValueOnce(new Error('Rollback failed'));
+
+    const result = await bulkUpdateFrontmatter(vaultPath, {
+      paths: ['a.md', 'b.md'],
+      fields: { area: 'work' },
+      dryRun: false
+    });
+
+    expect(result.applied).toBe(false);
+    expect(result.rolledBack).toBe(false);
+    expect(result.rollbackErrors).toEqual([{ path: 'a.md', error: 'Rollback failed' }]);
   });
 
   it('should extract tasks and analyze link graph', async () => {

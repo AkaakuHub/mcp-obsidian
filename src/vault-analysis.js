@@ -71,6 +71,7 @@ async function buildNoteRecord(vaultPath, file, options = {}) {
     sizeBytes: stats.size,
     lineCount: lines.length,
     frontmatter: metadata.frontmatter,
+    frontmatterError: metadata.frontmatterError,
     title: metadata.title,
     titleLine: metadata.titleLine,
     hasContent: metadata.hasContent,

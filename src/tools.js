@@ -390,16 +390,32 @@ export async function getNoteMetadata(vaultPath, notePath, options = {}) {
     const extensionValidation = validateMarkdownExtension(notePath);
     assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: notePath }));
 
-    const fullPath = path.join(vaultPath, notePath);
+    const fullPath = pathValidation.resolvedPath;
 
     // I/O: Check file size
-    const stats = await stat(fullPath);
+    let stats;
+    try {
+      stats = await stat(fullPath);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw Errors.resourceNotFound(notePath, { path: notePath });
+      }
+      throw Errors.internalError(`Failed to inspect note: ${error.message}`, { path: notePath });
+    }
     const sizeValidation = validateFileSizePure(stats.size, config.limits.maxFileSize);
     assertValid(sizeValidation, (msg, data) =>
       Errors.invalidParams(msg, { path: notePath, ...data }));
 
     // I/O: Read file
-    const content = await readFile(fullPath, 'utf-8');
+    let content;
+    try {
+      content = await readFile(fullPath, 'utf-8');
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw Errors.resourceNotFound(notePath, { path: notePath });
+      }
+      throw Errors.internalError(`Failed to read note: ${error.message}`, { path: notePath });
+    }
 
     // Pure: Extract metadata
     return extractNoteMetadata(content, notePath);
@@ -412,13 +428,14 @@ export async function getNoteMetadata(vaultPath, notePath, options = {}) {
   }
   const snapshot = await getVaultSnapshot(vaultPath, { directory: notePath || null });
   const { items: notes, pagination } = paginateArray(snapshot.notes, limit, offset);
-  return {
-    notes: notes.map((note) => ({
-      path: note.path,
-      frontmatter: note.frontmatter,
-      title: note.title,
-      titleLine: note.titleLine,
-      hasContent: note.hasContent,
+    return {
+      notes: notes.map((note) => ({
+        path: note.path,
+        frontmatter: note.frontmatter,
+        frontmatterError: note.frontmatterError,
+        title: note.title,
+        titleLine: note.titleLine,
+        hasContent: note.hasContent,
       contentLength: note.contentLength,
       contentPreview: note.contentPreview,
       inlineTags: note.inlineTags

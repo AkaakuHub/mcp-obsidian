@@ -1,12 +1,13 @@
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, stat, writeFile } from 'fs/promises';
 import path from 'path';
+import { config } from './config.js';
 import { Errors } from './errors.js';
 import { prepareFrontmatterUpdate } from './frontmatter.js';
 import { extractFrontmatter } from './metadata.js';
 import { collectTaskStyleVariants, summarizeTasks } from './task-analysis.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
 import { buildFolderTree, buildLinkGraph, buildPreview, getVaultSnapshot, listMarkdownFiles, scanVaultNotes } from './vault-analysis.js';
-import { validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
+import { validateFileSize, validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
 
 function assertValid(validationResult, errorFactory) {
   if (!validationResult.valid) {
@@ -25,7 +26,29 @@ async function readNoteForMutation(vaultPath, notePath) {
   assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
 
   const fullPath = pathValidation.resolvedPath;
-  const content = await readFile(fullPath, 'utf-8');
+  let stats;
+  try {
+    stats = await stat(fullPath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw Errors.resourceNotFound(notePath, { path: notePath });
+    }
+    throw Errors.internalError(`Failed to inspect note: ${error.message}`, { path: notePath });
+  }
+
+  const sizeValidation = validateFileSize(stats.size, config.limits.maxFileSize);
+  assertValid(sizeValidation, (msg, data) => Errors.invalidParams(msg, { path: notePath, ...data }));
+
+  let content;
+  try {
+    content = await readFile(fullPath, 'utf-8');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw Errors.resourceNotFound(notePath, { path: notePath });
+    }
+    throw Errors.internalError(`Failed to read note: ${error.message}`, { path: notePath });
+  }
+
   return { fullPath, content };
 }
 
@@ -123,11 +146,12 @@ export async function previewNotes(vaultPath, options = {}) {
 
 export async function readFrontmatter(vaultPath, notePath) {
   const { content } = await readNoteForMutation(vaultPath, notePath);
-  const { frontmatter } = extractFrontmatter(content);
+  const { frontmatter, parseError } = extractFrontmatter(content);
 
   return {
     path: notePath,
-    frontmatter
+    frontmatter,
+    parseError
   };
 }
 
@@ -221,6 +245,7 @@ export async function bulkUpdateFrontmatter(vaultPath, options = {}) {
   }
 
   const appliedPlans = [];
+  let failedPlanPath = null;
 
   try {
     for (const plan of plannedResults) {
@@ -228,12 +253,22 @@ export async function bulkUpdateFrontmatter(vaultPath, options = {}) {
         continue;
       }
 
+      failedPlanPath = plan.path;
       await writeFile(plan.fullPath, plan.nextContent, 'utf-8');
       appliedPlans.push(plan);
     }
   } catch (error) {
+    const rollbackErrors = [];
+
     for (const appliedPlan of appliedPlans.reverse()) {
-      await writeFile(appliedPlan.fullPath, appliedPlan.originalContent, 'utf-8');
+      try {
+        await writeFile(appliedPlan.fullPath, appliedPlan.originalContent, 'utf-8');
+      } catch (rollbackError) {
+        rollbackErrors.push({
+          path: appliedPlan.path,
+          error: rollbackError.message || String(rollbackError)
+        });
+      }
     }
 
     invalidateSnapshotsForVault(vaultPath);
@@ -241,13 +276,14 @@ export async function bulkUpdateFrontmatter(vaultPath, options = {}) {
       dryRun: false,
       applied: false,
       validationFailed: false,
-      rolledBack: true,
+      rolledBack: rollbackErrors.length === 0,
       targetCount: targetPaths.length,
       updatedCount: 0,
       errors: [{
-        path: appliedPlans[appliedPlans.length - 1]?.path || null,
+        path: failedPlanPath,
         error: error.message || String(error)
       }],
+      rollbackErrors,
       results: plannedResults.map((plan) => ({
         path: plan.path,
         dryRun: false,

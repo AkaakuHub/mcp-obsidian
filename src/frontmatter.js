@@ -1,11 +1,8 @@
 import { extractFrontmatter } from './metadata.js';
+import YAML from 'yaml';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function escapeString(value) {
-  return String(value).replace(/"/g, '\\"');
 }
 
 export function normalizeFrontmatterValue(value) {
@@ -22,48 +19,19 @@ export function normalizeFrontmatterValue(value) {
   return value;
 }
 
-function serializeScalar(value) {
-  if (typeof value === 'boolean' || typeof value === 'number') {
-    return String(value);
-  }
-
-  if (value === null || value === undefined) {
-    return '""';
-  }
-
-  return `"${escapeString(value)}"`;
-}
-
-function serializeArray(values) {
-  return `[${values.map(serializeScalar).join(', ')}]`;
-}
-
-function serializeObjectEntries(object, indent = '') {
-  return Object.entries(object).flatMap(([key, value]) => {
-    if (Array.isArray(value)) {
-      return `${indent}${key}: ${serializeArray(value)}`;
-    }
-
-    if (isPlainObject(value)) {
-      return [
-        `${indent}${key}:`,
-        ...serializeObjectEntries(value, `${indent}  `)
-      ];
-    }
-
-    return `${indent}${key}: ${serializeScalar(value)}`;
-  });
-}
-
 export function serializeFrontmatter(frontmatter) {
   const normalized = normalizeFrontmatterValue(frontmatter || {});
-  const lines = serializeObjectEntries(normalized);
-
-  if (lines.length === 0) {
+  if (Object.keys(normalized).length === 0) {
     return '';
   }
 
-  return `---\n${lines.join('\n')}\n---\n`;
+  const body = YAML.stringify(normalized, {
+    defaultKeyType: 'PLAIN',
+    defaultStringType: 'QUOTE_DOUBLE',
+    lineWidth: 0
+  }).trimEnd();
+
+  return `---\n${body}\n---\n`;
 }
 
 export function mergeFrontmatter(existingFrontmatter, patch, merge = true) {
@@ -106,7 +74,11 @@ export function diffFrontmatter(before = {}, after = {}) {
 }
 
 export function prepareFrontmatterUpdate(content, fields, merge = true) {
-  const { frontmatter } = extractFrontmatter(content);
+  const { frontmatter, parseError } = extractFrontmatter(content);
+  if (parseError) {
+    throw new Error(`Invalid frontmatter: ${parseError}`);
+  }
+
   const nextFrontmatter = mergeFrontmatter(frontmatter, fields, merge);
   const nextContent = upsertFrontmatter(content, nextFrontmatter);
   const changes = diffFrontmatter(frontmatter, nextFrontmatter);

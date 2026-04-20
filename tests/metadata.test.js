@@ -69,6 +69,22 @@ array: [item1, item2]
         boolean: true,
         array: ['item1', 'item2']
       });
+      expect(result.parseError).toBeNull();
+    });
+
+    it('should expose frontmatter parse errors without throwing', () => {
+      const content = `---
+tags: [broken
+status: active
+---
+
+# Note`;
+
+      const result = extractFrontmatter(content);
+
+      expect(result.frontmatter).toEqual({});
+      expect(result.parseError).toContain('Flow sequence');
+      expect(result.rawFrontmatter).toContain('tags: [broken');
     });
   });
   
@@ -160,6 +176,7 @@ Content with #inline-tag.`;
       expect(metadata).toMatchObject({
         path: 'test.md',
         frontmatter: { title: 'Test Note', tags: ['tag1'] },
+        frontmatterError: null,
         title: 'Test Note',
         titleLine: expect.any(Number),
         hasContent: true,
@@ -175,6 +192,18 @@ Content with #inline-tag.`;
       
       expect(metadata.title).toBeNull();
       expect(metadata.titleLine).toBeNull();
+    });
+
+    it('should surface frontmatter parse errors in note metadata', () => {
+      const content = `---
+tags: [broken
+---
+
+Body`;
+      const metadata = extractNoteMetadata(content, 'broken.md');
+
+      expect(metadata.frontmatter).toEqual({});
+      expect(metadata.frontmatterError).toContain('Flow sequence');
     });
   });
   

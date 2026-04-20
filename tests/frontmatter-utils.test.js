@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { diffFrontmatter, mergeFrontmatter, serializeFrontmatter, upsertFrontmatter } from '../src/frontmatter.js';
+import { extractFrontmatter } from '../src/metadata.js';
 
 describe('frontmatter utilities', () => {
   it('should serialize flat frontmatter values', () => {
@@ -9,7 +10,15 @@ describe('frontmatter utilities', () => {
       tags: ['project', 'next']
     });
 
-    expect(result).toBe('---\nstatus: "active"\ndone: false\ntags: ["project", "next"]\n---\n');
+    expect(result.startsWith('---\n')).toBe(true);
+    expect(result.endsWith('\n---\n')).toBe(true);
+    expect(result).toContain('status: "active"');
+    expect(result).toContain('done: false');
+    expect(extractFrontmatter(result).frontmatter).toEqual({
+      status: 'active',
+      done: false,
+      tags: ['project', 'next']
+    });
   });
 
   it('should upsert frontmatter into markdown content', () => {

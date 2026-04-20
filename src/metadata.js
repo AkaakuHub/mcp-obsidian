@@ -3,6 +3,7 @@
  */
 
 import { extractH1Title } from './title-search.js';
+import YAML from 'yaml';
 
 /**
  * Extracts frontmatter from markdown content (pure function)
@@ -13,7 +14,9 @@ export function extractFrontmatter(content) {
   if (!content || !content.trim().startsWith('---')) {
     return {
       frontmatter: {},
-      contentWithoutFrontmatter: content || ''
+      contentWithoutFrontmatter: content || '',
+      rawFrontmatter: '',
+      parseError: null
     };
   }
   
@@ -32,20 +35,24 @@ export function extractFrontmatter(content) {
     // No closing ---, treat as regular content
     return {
       frontmatter: {},
-      contentWithoutFrontmatter: content
+      contentWithoutFrontmatter: content,
+      rawFrontmatter: '',
+      parseError: null
     };
   }
   
   // Extract YAML content
   const yamlContent = lines.slice(1, endIndex).join('\n');
-  const frontmatter = parseYamlContent(yamlContent);
+  const { frontmatter, parseError } = parseYamlContent(yamlContent);
   
   // Get content after frontmatter
   const contentWithoutFrontmatter = lines.slice(endIndex + 1).join('\n');
   
   return {
     frontmatter,
-    contentWithoutFrontmatter
+    contentWithoutFrontmatter,
+    rawFrontmatter: yamlContent,
+    parseError
   };
 }
 
@@ -55,46 +62,29 @@ export function extractFrontmatter(content) {
  * @returns {object} Parsed object
  */
 function parseYamlContent(yamlContent) {
-  const result = {};
-  const lines = yamlContent.split('\n');
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    
-    const colonIndex = trimmed.indexOf(':');
-    if (colonIndex === -1) continue;
-    
-    const key = trimmed.substring(0, colonIndex).trim();
-    const value = trimmed.substring(colonIndex + 1).trim();
-    
-    if (!key) continue;
-    
-    // Handle arrays [item1, item2]
-    if (value.startsWith('[') && value.endsWith(']')) {
-      const items = value.slice(1, -1).split(',').map(item => item.trim());
-      result[key] = items;
+  try {
+    const document = YAML.parseDocument(yamlContent, {
+      prettyErrors: true
+    });
+
+    if (document.errors.length > 0) {
+      return {
+        frontmatter: {},
+        parseError: document.errors.map((error) => error.message).join('; ')
+      };
     }
-    // Handle quoted strings
-    else if ((value.startsWith('"') && value.endsWith('"')) || 
-             (value.startsWith("'") && value.endsWith("'"))) {
-      result[key] = value.slice(1, -1);
-    }
-    // Handle booleans
-    else if (value === 'true' || value === 'false') {
-      result[key] = value === 'true';
-    }
-    // Handle numbers
-    else if (!isNaN(value) && value !== '') {
-      result[key] = Number(value);
-    }
-    // Default to string
-    else {
-      result[key] = value;
-    }
+
+    const parsed = document.toJSON();
+    return {
+      frontmatter: parsed && typeof parsed === 'object' ? parsed : {},
+      parseError: null
+    };
+  } catch (error) {
+    return {
+      frontmatter: {},
+      parseError: error.message || 'Failed to parse frontmatter'
+    };
   }
-  
-  return result;
 }
 
 /**
@@ -149,7 +139,7 @@ export function extractContentPreview(content, maxLength = 200) {
  * @returns {object} Complete metadata object
  */
 export function extractNoteMetadata(content, path) {
-  const { frontmatter, contentWithoutFrontmatter } = extractFrontmatter(content);
+  const { frontmatter, contentWithoutFrontmatter, parseError } = extractFrontmatter(content);
   const inlineTags = extractInlineTags(contentWithoutFrontmatter);
   
   const titleInfo = extractH1Title(content);
@@ -162,6 +152,7 @@ export function extractNoteMetadata(content, path) {
   return {
     path,
     frontmatter,
+    frontmatterError: parseError,
     title,
     titleLine,
     hasContent,
