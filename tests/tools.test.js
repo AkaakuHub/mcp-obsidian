@@ -16,6 +16,11 @@ describe('Tools module', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1024,
+      birthtime: new Date('2026-01-01T00:00:00.000Z'),
+      mtime: new Date('2026-01-02T00:00:00.000Z')
+    });
   });
 
   describe('searchVault', () => {
@@ -27,7 +32,6 @@ describe('Tools module', () => {
 
       glob.mockResolvedValue(mockFiles);
       // Mock file sizes to be within limit
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
       // After sorting: folder/note2.md comes before note1.md
       readFile
         .mockResolvedValueOnce('Another file\nWith TEST here\nAnd TEST again')
@@ -56,7 +60,6 @@ describe('Tools module', () => {
     it('should handle case-sensitive search', async () => {
       const mockFiles = ['/test/vault/note.md'];
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
       readFile.mockResolvedValue('test\nTest\nTEST');
 
       const result = await searchVault(mockVaultPath, 'Test', null, true);
@@ -75,7 +78,6 @@ describe('Tools module', () => {
 
     it('should handle empty results', async () => {
       glob.mockResolvedValue(['/test/vault/note.md']);
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
       readFile.mockResolvedValue('No matches here');
 
       const result = await searchVault(mockVaultPath, 'notfound', null, false);
@@ -153,7 +155,6 @@ describe('Tools module', () => {
     it('should read note content', async () => {
       const noteContent = '# Test Note\n\nThis is the content';
       access.mockResolvedValue();
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
       readFile.mockResolvedValue(noteContent);
 
       const result = await readNote(mockVaultPath, 'test.md');
@@ -164,7 +165,6 @@ describe('Tools module', () => {
 
     it('should handle nested paths', async () => {
       access.mockResolvedValue();
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
       readFile.mockResolvedValue('Content');
 
       await readNote(mockVaultPath, 'folder/subfolder/note.md');
@@ -177,7 +177,6 @@ describe('Tools module', () => {
 
     it('should propagate read errors', async () => {
       access.mockResolvedValue();
-      stat.mockResolvedValue({ size: 1024 }); // 1KB
       readFile.mockRejectedValue(new Error('File not found'));
 
       await expect(readNote(mockVaultPath, 'missing.md'))
@@ -188,7 +187,6 @@ describe('Tools module', () => {
       // Exact path fails, but glob finds the file elsewhere
       access.mockRejectedValueOnce(new Error('ENOENT'));
       glob.mockResolvedValue(['/test/vault/projects/note.md']);
-      stat.mockResolvedValue({ size: 1024 });
       readFile.mockResolvedValue('# Found Note');
 
       const result = await readNote(mockVaultPath, 'note.md');

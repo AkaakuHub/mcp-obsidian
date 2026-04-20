@@ -1,5 +1,9 @@
 import { extractFrontmatter } from './metadata.js';
-import YAML from 'yaml';
+import {
+  applyFrontmatterState,
+  parseFrontmatterDocument,
+  stringifyFrontmatterDocument
+} from './frontmatter-document.js';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -25,13 +29,9 @@ export function serializeFrontmatter(frontmatter) {
     return '';
   }
 
-  const body = YAML.stringify(normalized, {
-    defaultKeyType: 'PLAIN',
-    defaultStringType: 'QUOTE_DOUBLE',
-    lineWidth: 0
-  }).trimEnd();
-
-  return `---\n${body}\n---\n`;
+  const { document } = parseFrontmatterDocument('');
+  applyFrontmatterState(document, normalized);
+  return stringifyFrontmatterDocument(document);
 }
 
 export function mergeFrontmatter(existingFrontmatter, patch, merge = true) {
@@ -46,8 +46,11 @@ export function mergeFrontmatter(existingFrontmatter, patch, merge = true) {
 }
 
 export function upsertFrontmatter(content, frontmatter) {
-  const { contentWithoutFrontmatter } = extractFrontmatter(content || '');
-  const serialized = serializeFrontmatter(frontmatter);
+  const { contentWithoutFrontmatter, rawFrontmatter } = extractFrontmatter(content || '');
+  const normalized = normalizeFrontmatterValue(frontmatter || {});
+  const { document } = parseFrontmatterDocument(rawFrontmatter);
+  applyFrontmatterState(document, normalized);
+  const serialized = stringifyFrontmatterDocument(document);
   const body = contentWithoutFrontmatter.replace(/^\n+/, '');
 
   if (!serialized) {

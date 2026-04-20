@@ -3,6 +3,7 @@ import { searchVault } from '../src/tools.js';
 import { config } from '../src/config.js';
 import { readFile, stat } from 'fs/promises';
 import { glob } from 'glob';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 vi.mock('fs/promises');
 vi.mock('glob');
@@ -12,6 +13,12 @@ describe('Search Pagination (FIRST Principles)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1000,
+      birthtime: new Date('2026-01-01T00:00:00.000Z'),
+      mtime: new Date('2026-01-02T00:00:00.000Z')
+    });
   });
 
   describe('maxSearchResults limit (config.js)', () => {
@@ -20,7 +27,6 @@ describe('Search Pagination (FIRST Principles)', () => {
       glob.mockResolvedValue(
         Array.from({ length: 50 }, (_, i) => `/test/vault/file${i + 1}.md`)
       );
-      stat.mockResolvedValue({ size: 1000 });
       readFile.mockImplementation(async (path) =>
         Array.from({ length: 5 }, (_, i) => `Line ${i + 1} with match`).join('\n')
       );
@@ -42,7 +48,6 @@ describe('Search Pagination (FIRST Principles)', () => {
         '/test/vault/b.md',
         '/test/vault/c.md'
       ]);
-      stat.mockResolvedValue({ size: 1000 });
       readFile.mockResolvedValue('match\nmatch');
 
       // ACT
@@ -65,7 +70,11 @@ describe('Search Pagination (FIRST Principles)', () => {
       glob.mockResolvedValue(
         Array.from({ length: 50 }, (_, i) => `/test/vault/file${i}.md`)
       );
-      stat.mockResolvedValue({ size: 100 });
+      stat.mockResolvedValue({
+        size: 100,
+        birthtime: new Date('2026-01-01T00:00:00.000Z'),
+        mtime: new Date('2026-01-02T00:00:00.000Z')
+      });
       readFile.mockResolvedValue('single match');
 
       const result = await searchVault(mockVaultPath, 'match');

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { searchVault } from '../src/tools.js';
 import { readFile, stat } from 'fs/promises';
 import { glob } from 'glob';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 vi.mock('fs/promises');
 vi.mock('glob');
@@ -11,6 +12,12 @@ describe('searchVault with operators', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1000,
+      birthtime: new Date('2026-01-01T00:00:00.000Z'),
+      mtime: new Date('2026-01-02T00:00:00.000Z')
+    });
   });
 
   it('should handle NOT operator correctly', async () => {
@@ -20,17 +27,12 @@ describe('searchVault with operators', () => {
       '/test/vault/note2.md'
     ]);
     
-    // Mock file stats
-    stat.mockResolvedValue({ size: 1000 });
-    
     // Mock file contents
     readFile
       .mockResolvedValueOnce('This note is about mcp and caas')
       .mockResolvedValueOnce('This note is about mcp only');
     
     const result = await searchVault(mockVaultPath, 'mcp NOT caas');
-    
-    console.log('Search result:', result);
     
     // Should only find the second note
     expect(result.totalMatches).toBeGreaterThan(0);
@@ -45,17 +47,12 @@ describe('searchVault with operators', () => {
       '/test/vault/note2.md'
     ]);
     
-    // Mock file stats
-    stat.mockResolvedValue({ size: 1000 });
-    
     // Mock file contents
     readFile
       .mockResolvedValueOnce('This note is about mcp and caas')
       .mockResolvedValueOnce('This note is about mcp only');
     
     const result = await searchVault(mockVaultPath, 'mcp -caas');
-    
-    console.log('Search result with minus:', result);
     
     // Should only find the second note
     expect(result.totalMatches).toBeGreaterThan(0);
@@ -69,18 +66,12 @@ describe('searchVault with operators', () => {
       '/test/vault/note1.md'
     ]);
     
-    // Mock file stats
-    stat.mockResolvedValue({ size: 1000 });
-    
     // Mock file contents
     readFile.mockResolvedValueOnce('This note is about mcp and caas');
     
     // Test both queries
     const result1 = await searchVault(mockVaultPath, 'mcp NOT caas');
     const result2 = await searchVault(mockVaultPath, 'mcp -caas');
-    
-    console.log('Result for "mcp NOT caas":', result1);
-    console.log('Result for "mcp -caas":', result2);
     
     // Both should exclude the note with caas
     expect(result1.totalMatches).toBe(0);

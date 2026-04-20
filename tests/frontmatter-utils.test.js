@@ -36,4 +36,23 @@ describe('frontmatter utilities', () => {
     expect(merged).toEqual({ status: 'doing', area: 'work' });
     expect(diff).toEqual([{ key: 'status', before: 'todo', after: 'doing' }]);
   });
+
+  it('should preserve existing comments when updating frontmatter', () => {
+    const content = `---
+# status comment
+status: "todo"
+owner: "alice"
+---
+
+# Note`;
+
+    const result = upsertFrontmatter(content, {
+      status: 'doing',
+      owner: 'alice'
+    });
+
+    expect(result).toContain('# status comment');
+    expect(result).toContain('status: "doing"');
+    expect(result).toContain('owner: "alice"');
+  });
 });

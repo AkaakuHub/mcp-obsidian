@@ -7,12 +7,19 @@ vi.mock('glob');
 
 import { readFile, stat } from 'fs/promises';
 import { glob } from 'glob';
+import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('searchByTitle', () => {
   const mockVaultPath = '/test/vault';
   
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSnapshotCache();
+    stat.mockResolvedValue({
+      size: 1024,
+      birthtime: new Date('2026-01-01T00:00:00.000Z'),
+      mtime: new Date('2026-01-02T00:00:00.000Z')
+    });
   });
   
   it('should find notes by exact title match', async () => {
@@ -22,8 +29,6 @@ describe('searchByTitle', () => {
     ];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 }); // 1KB
-    
     readFile
       .mockResolvedValueOnce('# Getting Started\n\nWelcome to Obsidian!')
       .mockResolvedValueOnce('# Other Note\n\nSome content');
@@ -46,8 +51,6 @@ describe('searchByTitle', () => {
     ];
 
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
-
     // After sorting: Other.md, Projects/MCP Development.md, Projects/Web Development.md
     readFile
       .mockResolvedValueOnce('# Other Title\n\nContent')
@@ -65,7 +68,6 @@ describe('searchByTitle', () => {
     const mockFiles = ['/test/vault/Getting Started.md'];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
     readFile.mockResolvedValue('# Getting Started\n\nContent');
     
     const result = await searchByTitle(mockVaultPath, 'getting started');
@@ -78,7 +80,6 @@ describe('searchByTitle', () => {
     const mockFiles = ['/test/vault/Getting Started.md'];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
     readFile.mockResolvedValue('# Getting Started\n\nContent');
     
     const result = await searchByTitle(mockVaultPath, 'getting started', null, true);
@@ -93,8 +94,6 @@ describe('searchByTitle', () => {
     ];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
-    
     readFile
       .mockResolvedValueOnce('# MCP Development\n\nNotes')
       .mockResolvedValueOnce('# Web Development\n\nNotes');
@@ -110,7 +109,6 @@ describe('searchByTitle', () => {
     const mockFiles = ['/test/vault/no-title.md'];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
     readFile.mockResolvedValue('This note has no title, just content.');
     
     const result = await searchByTitle(mockVaultPath, 'no-title');
@@ -122,7 +120,6 @@ describe('searchByTitle', () => {
     const mockFiles = ['/test/vault/second-heading.md'];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
     readFile.mockResolvedValue('Some intro text\n\n## Second Level Heading\n\nContent');
     
     const result = await searchByTitle(mockVaultPath, 'Second Level Heading');
@@ -134,7 +131,6 @@ describe('searchByTitle', () => {
     const mockFiles = ['/test/vault/API Documentation.md'];
     
     glob.mockResolvedValue(mockFiles);
-    stat.mockResolvedValue({ size: 1024 });
     readFile.mockResolvedValue('# API Documentation\n\nContent');
     
     const result = await searchByTitle(mockVaultPath, 'API');
@@ -162,8 +158,6 @@ describe('searchByTitle', () => {
       );
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
-
       // Mock readFile to return titles with "test" in them
       readFile.mockImplementation(async (path) => {
         const fileNum = parseInt(path.match(/note(\d+)/)[1]);
@@ -188,8 +182,6 @@ describe('searchByTitle', () => {
       );
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
-
       // Mock readFile to return titles with "test" in them
       readFile.mockImplementation(async (path) => {
         const fileNum = parseInt(path.match(/note(\d+)/)[1]);
@@ -214,8 +206,6 @@ describe('searchByTitle', () => {
       );
 
       glob.mockResolvedValue(mockFiles);
-      stat.mockResolvedValue({ size: 1024 });
-
       readFile.mockImplementation(async (path) => {
         const fileNum = parseInt(path.match(/note(\d+)/)[1]);
         return `# Test Note ${fileNum}\n\nContent`;
