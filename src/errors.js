@@ -40,7 +40,7 @@ export class MCPError extends Error {
 /**
  * Create a standard MCP error
  */
-export function createError(code, message, data) {
+function createError(code, message, data) {
   return new MCPError(code, message, data);
 }
 

@@ -103,7 +103,7 @@ export function formatContextResult(match, contextLines, query, options = {}) {
  * @param {number} snippetRadius - Characters to show before/after match
  * @returns {string} Snippet with ellipsis if truncated
  */
-export function extractSnippet(line, matchPos, snippetRadius = 40) {
+function extractSnippet(line, matchPos, snippetRadius = 40) {
   if (!line) return '';
   
   const start = Math.max(0, matchPos - snippetRadius);

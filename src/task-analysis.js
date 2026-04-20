@@ -35,7 +35,7 @@ export function extractTasksFromContent(content, notePath = '') {
   return tasks;
 }
 
-export function extractTaskDueDate(text) {
+function extractTaskDueDate(text) {
   for (const pattern of DUE_PATTERNS) {
     const match = text.match(pattern);
     if (match) {

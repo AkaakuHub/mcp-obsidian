@@ -2,7 +2,7 @@ function dateLikeStem(stem) {
   return /^\d{4}-\d{2}-\d{2}$/.test(stem) || /^\d{8}$/.test(stem);
 }
 
-export function classifyDailyNote(note) {
+function classifyDailyNote(note) {
   const lowerPath = note.path.toLowerCase();
   const lowerStem = note.stem.toLowerCase();
 

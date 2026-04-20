@@ -9,7 +9,7 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function normalizeFrontmatterValue(value) {
+function normalizeFrontmatterValue(value) {
   if (Array.isArray(value)) {
     return value.map(normalizeFrontmatterValue);
   }

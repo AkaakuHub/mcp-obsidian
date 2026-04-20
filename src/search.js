@@ -15,7 +15,7 @@ import { extractContextLines, formatContextResult } from './search-context.js';
  * @param {number} offset - Offset parameter used
  * @returns {object} Pagination metadata
  */
-export function createPaginationMetadata(total, returned, limit, offset) {
+function createPaginationMetadata(total, returned, limit, offset) {
   return {
     total,
     returned,
