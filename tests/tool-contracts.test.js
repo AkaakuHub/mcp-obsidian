@@ -15,25 +15,17 @@ vi.mock('../src/tools.js', () => ({
 
 vi.mock('../src/analysis-tools.js', () => ({
   listNotesDetailed: vi.fn(),
-  listFolders: vi.fn(),
   writeFrontmatter: vi.fn(),
   bulkUpdateFrontmatter: vi.fn(),
   extractTasks: vi.fn(),
   analyzeLinks: vi.fn(),
-  previewMoveImpact: vi.fn(),
   moveMany: vi.fn()
-}));
-
-vi.mock('../src/audits.js', () => ({
-  buildVaultInventory: vi.fn(),
-  auditTasks: vi.fn()
 }));
 
 import { createToolHandlerMap } from '../src/tool-handler-map.js';
 import { toolDefinitions } from '../src/toolDefinitions.js';
 import * as tools from '../src/tools.js';
 import * as analysisTools from '../src/analysis-tools.js';
-import * as audits from '../src/audits.js';
 
 const ajv = new Ajv({ strict: false, allErrors: true });
 
@@ -69,7 +61,11 @@ const outputSamples = {
   'list-notes': {
     notes: ['note.md'],
     count: 1,
-    pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
+    pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false },
+    root: '',
+    folderCount: 1,
+    folders: [{ name: 'folder', path: 'folder', depth: 1, noteCount: 1, children: [] }],
+    folderPaths: ['folder']
   },
   'read-note': {
     path: 'resolved/note.md',
@@ -114,12 +110,6 @@ const outputSamples = {
     count: 1,
     errors: [],
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
-  },
-  'list-folders': {
-    root: '',
-    folderCount: 2,
-    folders: [{ name: 'folder', path: 'folder', depth: 1, noteCount: 1, children: [] }],
-    paths: ['folder', 'folder/sub']
   },
   'write-frontmatter': {
     path: 'note.md',
@@ -169,16 +159,6 @@ const outputSamples = {
     orphans: [],
     hubs: []
   },
-  'preview-move-impact': {
-    sourcePath: 'note.md',
-    resolvedSourcePath: 'notes/note.md',
-    destinationPath: 'archive/note.md',
-    renameDetected: false,
-    inboundLinkCount: 2,
-    affectedLinkCount: 1,
-    affectedLinks: [{ path: 'ref.md', target: 'notes/note', futureResolvedPath: null, willBreak: true }],
-    sourceOutboundLinks: [{ target: 'other', resolvedPath: 'other.md' }]
-  },
   'move-many': {
     dryRun: true,
     applied: false,
@@ -189,24 +169,6 @@ const outputSamples = {
     errors: [],
     rollbackErrors: [],
     results: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md', resolvedSourcePath: 'a.md', status: 'planned', errors: [] }]
-  },
-  'vault-inventory': {
-    noteCount: 10,
-    folderCount: 3,
-    taskCount: 4,
-    orphanCount: 2,
-    topTags: [{ tag: 'work', count: 4 }],
-    largeNotes: [{ path: 'big.md', sizeBytes: 60000, lineCount: 900 }],
-    recentNotes: [{ path: 'note.md', updatedAt: '2026-01-02T00:00:00.000Z' }],
-    orphans: ['orphan.md']
-  },
-  'task-audit': {
-    totalTasks: 4,
-    missingDueCount: 2,
-    missingDueTasks: [{ path: 'tasks.md', completed: false, due: null, text: 'todo' }],
-    hotspots: [{ path: 'tasks.md', taskCount: 10 }],
-    completionStyles: [{ marker: 'x', count: 3 }],
-    projectUnclassifiedNotes: ['tasks.md']
   }
 };
 
@@ -221,15 +183,11 @@ const toolArgs = {
   'delete-note': { path: 'note.md' },
   'search-by-tags': { tags: ['tag'] },
   'list-notes-detailed': {},
-  'list-folders': {},
   'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
   'bulk-update-frontmatter': { fields: { area: 'work' } },
   'extract-tasks': {},
   'analyze-links': {},
-  'preview-move-impact': { sourcePath: 'note.md', destinationPath: 'archive/note.md' },
-  'move-many': { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] },
-  'vault-inventory': {},
-  'task-audit': {}
+  'move-many': { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] }
 };
 
 describe('tool contracts', () => {
@@ -249,16 +207,11 @@ describe('tool contracts', () => {
     tools.searchByTags.mockResolvedValue(outputSamples['search-by-tags']);
 
     analysisTools.listNotesDetailed.mockResolvedValue(outputSamples['list-notes-detailed']);
-    analysisTools.listFolders.mockResolvedValue(outputSamples['list-folders']);
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);
     analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-update-frontmatter']);
     analysisTools.extractTasks.mockResolvedValue(outputSamples['extract-tasks']);
     analysisTools.analyzeLinks.mockResolvedValue(outputSamples['analyze-links']);
-    analysisTools.previewMoveImpact.mockResolvedValue(outputSamples['preview-move-impact']);
     analysisTools.moveMany.mockResolvedValue(outputSamples['move-many']);
-
-    audits.buildVaultInventory.mockResolvedValue(outputSamples['vault-inventory']);
-    audits.auditTasks.mockResolvedValue(outputSamples['task-audit']);
   });
 
   for (const toolDefinition of toolDefinitions) {

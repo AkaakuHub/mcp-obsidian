@@ -5,8 +5,10 @@ import path from 'path';
 import { Errors, MCPError } from './errors.js';
 import { config } from './config.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
+import { buildFolderTree } from './vault-analysis.js';
 import { searchFilenamesWithSnapshot, searchVaultWithSnapshot } from './search-tools.js';
 import { paginateArray } from './search.js';
+import { flattenFolderTree } from './reorganization-core.js';
 import {
   validatePathWithinBase,
   validateMarkdownExtension,
@@ -30,7 +32,7 @@ export async function searchByFilename(vaultPath, query, searchPath, caseSensiti
   return searchFilenamesWithSnapshot(vaultPath, query, searchPath, caseSensitive, limit, offset);
 }
 
-export async function listNotes(vaultPath, directory, limit = 100, offset = 0) {
+export async function listNotes(vaultPath, directory, limit = 100, offset = 0, includeFolders = false) {
   if (directory) {
     const pathValidation = validatePathWithinBase(vaultPath, directory);
     assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: directory }));
@@ -43,11 +45,17 @@ export async function listNotes(vaultPath, directory, limit = 100, offset = 0) {
   const files = await glob(searchPath);
   const allNotes = files.map(file => path.relative(vaultPath, file)).sort();
   const { items: paginatedNotes, pagination } = paginateArray(allNotes, limit, offset);
+  const folders = includeFolders ? buildFolderTree(allNotes) : [];
+  const folderPaths = includeFolders ? flattenFolderTree(folders) : [];
 
   return {
     notes: paginatedNotes,
     count: paginatedNotes.length,
-    pagination
+    pagination,
+    root: directory || '',
+    folderCount: folderPaths.length,
+    folders,
+    folderPaths
   };
 }
 

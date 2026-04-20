@@ -65,12 +65,13 @@ export const baseToolDefinitions = [
   {
     name: 'list-notes',
     title: 'List Notes',
-    description: 'List markdown note paths in the vault or a specific directory without reading note contents.',
+    description: 'List markdown note paths in the vault or a specific directory without reading note contents. Optionally include the folder tree in the same response.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
         directory: { type: 'string', description: 'Optional vault-relative directory to list from.' },
+        includeFolders: { type: 'boolean', default: false, description: 'When true, also return folder tree data and flattened folder paths for the same scope.' },
         limit: { type: 'integer', default: 100, minimum: 1, maximum: 1000, description: 'Maximum number of note paths to return.' },
         offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of note paths to skip for pagination.' }
       },
@@ -82,9 +83,13 @@ export const baseToolDefinitions = [
       properties: {
         notes: { type: 'array' },
         count: { type: 'integer' },
-        pagination: { type: 'object' }
+        pagination: { type: 'object' },
+        root: { type: 'string' },
+        folderCount: { type: 'integer', minimum: 0 },
+        folders: { type: 'array' },
+        folderPaths: { type: 'array', items: { type: 'string' } }
       },
-      required: ['notes', 'count', 'pagination'],
+      required: ['notes', 'count', 'pagination', 'root', 'folderCount', 'folders', 'folderPaths'],
       additionalProperties: false
     }
   },

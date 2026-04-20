@@ -174,11 +174,7 @@ Search for notes by filename, stem, or vault-relative path.
 List markdown files in your vault or a specific directory with pagination.
 - Returns file paths, page counts, and total count
 - Supports directory filtering
-
-### list-folders
-Return the folder tree and flattened folder paths.
-- Useful before large-scale moves or area/project cleanup
-- Returns both the nested tree and plain-text folder paths
+- `includeFolders: true` also returns folder tree data and flattened folder paths for the same scope
 
 ### read-note
 Read the complete content of a specific note.
@@ -217,11 +213,6 @@ Find notes containing specific tags.
 - AND operation for multiple tags
 - Case-sensitive/insensitive matching
 
-### preview-move-impact
-Preview backlink fallout before moving or renaming a note.
-- Highlights links that would stop resolving after the move
-- Useful before batch reorganization
-
 ### move-many
 Preview or apply multiple note moves in one call.
 - `dryRun: true` is the safe default
@@ -254,7 +245,6 @@ Examples:
 ### Tasks and links
 - `extract-tasks` - vault-wide task extraction with due-date detection
 - `analyze-links` - backlinks, outbound links, orphan notes, and hub notes
-- `preview-move-impact` - backlink fallout preview before renames or moves
 - `move-many` - preview-first batch move execution with rollback attempts
 
 Examples:
@@ -266,15 +256,6 @@ Examples:
 ```
 ```json
 { "directory": "Projects" }
-```
-
-### Detection and audits
-- `vault-inventory` - one-shot vault summary with note counts, top tags, tasks, orphans, large notes, and recent notes
-- `task-audit` - missing due dates, task hotspots, completion-style drift, and missing `project` frontmatter
-
-Examples:
-```json
-{ "directory": "Projects", "hotspotThreshold": 15 }
 ```
 
 ## Security Features

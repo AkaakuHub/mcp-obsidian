@@ -121,4 +121,23 @@ describe('base handlers', () => {
     expect(response.structuredContent.files[0].matches[0].context.lines).toHaveLength(3);
     expect(response.structuredContent.files[0].matches[0].context.highlighted).toBe('**match** line');
   });
+
+  it('passes includeFolders through list-notes', async () => {
+    const { listNotes } = await import('../src/tools.js');
+    listNotes.mockResolvedValue({
+      notes: ['note.md'],
+      count: 1,
+      pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false },
+      root: '',
+      folderCount: 1,
+      folders: [{ name: 'folder', path: 'folder', depth: 1, noteCount: 1, children: [] }],
+      folderPaths: ['folder']
+    });
+    const handlers = createBaseHandlers(vaultPath);
+
+    const response = await handlers['list-notes']({ includeFolders: true }, Date.now(), 'list-notes');
+
+    expect(listNotes).toHaveBeenCalledWith(vaultPath, undefined, 100, 0, true);
+    expect(response.structuredContent.folderCount).toBe(1);
+  });
 });

@@ -14,15 +14,11 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('delete-note');
     expect(toolNames).toContain('search-by-tags');
     expect(toolNames).toContain('list-notes-detailed');
-    expect(toolNames).toContain('list-folders');
     expect(toolNames).toContain('write-frontmatter');
     expect(toolNames).toContain('bulk-update-frontmatter');
     expect(toolNames).toContain('extract-tasks');
     expect(toolNames).toContain('analyze-links');
-    expect(toolNames).toContain('preview-move-impact');
     expect(toolNames).toContain('move-many');
-    expect(toolNames).toContain('vault-inventory');
-    expect(toolNames).toContain('task-audit');
   });
 
   it('should have valid schemas for all tools', () => {
@@ -54,15 +50,13 @@ describe('Tool Definitions', () => {
 
     const listTool = toolDefinitions.find(t => t.name === 'list-notes');
     expect(listTool.inputSchema.required).toBeUndefined();
+    expect(listTool.inputSchema.properties.includeFolders).toBeDefined();
 
     const tagSearchTool = toolDefinitions.find(t => t.name === 'search-by-tags');
     expect(tagSearchTool.inputSchema.required).toEqual(['tags']);
     
     const filenameSearchTool = toolDefinitions.find(t => t.name === 'search-by-filename');
     expect(filenameSearchTool.inputSchema.required).toEqual(['query']);
-
-    const previewMoveTool = toolDefinitions.find(t => t.name === 'preview-move-impact');
-    expect(previewMoveTool.inputSchema.required).toEqual(['sourcePath', 'destinationPath']);
 
     const moveManyTool = toolDefinitions.find(t => t.name === 'move-many');
     expect(moveManyTool.inputSchema.required).toEqual(['moves']);

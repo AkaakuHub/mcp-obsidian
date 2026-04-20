@@ -149,6 +149,19 @@ describe('Tools module', () => {
       await expect(listNotes(mockVaultPath))
         .rejects.toThrow('Access denied');
     });
+
+    it('should include folders when requested', async () => {
+      glob.mockResolvedValue([
+        '/test/vault/folder/note.md',
+        '/test/vault/folder/sub/child.md'
+      ]);
+
+      const result = await listNotes(mockVaultPath, undefined, 100, 0, true);
+
+      expect(result.folderCount).toBe(2);
+      expect(result.folderPaths).toEqual(['folder', 'folder/sub']);
+      expect(result.folders).toHaveLength(1);
+    });
   });
 
   describe('readNote', () => {

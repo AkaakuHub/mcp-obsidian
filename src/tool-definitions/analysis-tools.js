@@ -29,31 +29,6 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'list-folders',
-    title: 'List Folders',
-    description: 'Return the folder tree and flattened folder paths for structural cleanup without reading note bodies.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        directory: { type: 'string', description: 'Optional vault-relative directory to treat as the root of the returned tree.' }
-      },
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        root: { type: 'string' },
-        folderCount: { type: 'integer', minimum: 0 },
-        folders: { type: 'array' },
-        paths: { type: 'array', items: { type: 'string' } }
-      },
-      required: ['root', 'folderCount', 'folders', 'paths'],
-      additionalProperties: false
-    }
-  },
-  {
     name: 'write-frontmatter',
     title: 'Write Frontmatter',
     description: 'Preview or apply a frontmatter update for one note. `dryRun: true` is the safe default.',
@@ -193,37 +168,6 @@ export const analysisToolDefinitions = [
           additionalProperties: false
         }
       ]
-    }
-  },
-  {
-    name: 'preview-move-impact',
-    title: 'Preview Move Impact',
-    description: 'Preview backlinks that would stop resolving after moving or renaming a note before applying the move.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        sourcePath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Existing note path or unique markdown filename to move.' },
-        destinationPath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Proposed vault-relative destination path.' }
-      },
-      required: ['sourcePath', 'destinationPath'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        sourcePath: { type: 'string' },
-        resolvedSourcePath: { type: 'string' },
-        destinationPath: { type: 'string' },
-        renameDetected: { type: 'boolean' },
-        inboundLinkCount: { type: 'integer', minimum: 0 },
-        affectedLinkCount: { type: 'integer', minimum: 0 },
-        affectedLinks: { type: 'array' },
-        sourceOutboundLinks: { type: 'array' }
-      },
-      required: ['sourcePath', 'resolvedSourcePath', 'destinationPath', 'renameDetected', 'inboundLinkCount', 'affectedLinkCount', 'affectedLinks', 'sourceOutboundLinks'],
-      additionalProperties: false
     }
   },
   {

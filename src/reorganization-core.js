@@ -12,7 +12,7 @@ function normalizeLinkTarget(target) {
   return target.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
 }
 
-export function createAliasMap(notes) {
+function createAliasMap(notes) {
   const aliasMap = new Map();
 
   for (const note of notes) {
@@ -31,11 +31,11 @@ export function createAliasMap(notes) {
   return aliasMap;
 }
 
-export function resolveLinkTarget(linkTarget, aliasMap) {
+function resolveLinkTarget(linkTarget, aliasMap) {
   return aliasMap.get(normalizeLinkTarget(linkTarget)) || null;
 }
 
-export function resolveNoteReference(snapshot, noteReference) {
+function resolveNoteReference(snapshot, noteReference) {
   const exact = snapshot.notes.find((note) => note.path === noteReference);
   if (exact) {
     return exact;
@@ -70,7 +70,7 @@ export function flattenFolderTree(nodes) {
   return flattened;
 }
 
-export function validateDestinationPath(vaultPath, destinationPath) {
+function validateDestinationPath(vaultPath, destinationPath) {
   const extensionValidation = validateMarkdownExtension(destinationPath);
   assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: destinationPath }));
 

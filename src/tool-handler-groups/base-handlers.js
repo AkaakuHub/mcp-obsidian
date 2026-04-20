@@ -23,8 +23,8 @@ export function createBaseHandlers(vaultPath) {
       return structuredResponse(result, `Found ${result.count} notes matching filename "${query}"`, createMetadata(startTime, { tool: toolName, filesSearched: result.filesSearched || 0 }));
     },
     'list-notes': async (args, startTime, toolName) => {
-      const { directory, limit = 100, offset = 0 } = args;
-      const result = await listNotes(vaultPath, directory, limit, offset);
+      const { directory, includeFolders = false, limit = 100, offset = 0 } = args;
+      const result = await listNotes(vaultPath, directory, limit, offset, includeFolders);
       return structuredResponse(result, makeStructuredDescription('Listed notes', result.count), createMetadata(startTime, { tool: toolName }));
     },
     'read-note': async (args, startTime, toolName) => {
