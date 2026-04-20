@@ -22,6 +22,7 @@ This server instead works directly with Obsidian vault files on disk, making it 
 - **High performance** with execution time tracking and resource limits
 - **Rich search capabilities** including regex support and tag-based search
 - **Metadata support** with frontmatter and inline tag parsing
+- **Vault analysis tools** for folder structure, task extraction, link graph inspection, and audits
 - **MCP Resources** for HATEOAS-style discovery and navigation
 
 ## Recent Updates
@@ -242,6 +243,34 @@ Found 10 MOCs
 ```
 
 This tool enables agents to understand your knowledge graph structure instantly, making navigation ~10x faster than blind keyword searching.
+
+## New Organization And Audit Tools
+
+These tools are aimed at vault cleanup, inventory, and safe bulk operations.
+
+### Structure and note inspection
+- `get-vault-structure` - folder hierarchy with note counts
+- `list-notes-detailed` - path, created/updated timestamps, tags, size, task count, link count, backlink count
+- `preview-notes` - first N lines of many notes without full reads
+
+### Frontmatter and safe bulk edits
+- `read-frontmatter` - inspect frontmatter only
+- `write-frontmatter` - single-note frontmatter update with `dryRun`
+- `bulk-update-frontmatter` - multi-note frontmatter updates with `dryRun`, per-note diffs, and target counts
+
+### Tasks and links
+- `extract-tasks` - vault-wide task extraction with due-date detection
+- `analyze-links` - backlinks, outbound links, orphan notes, and hub notes
+
+### Detection and audits
+- `detect-daily-notes` - classify daily, journal, thino, and log-style notes
+- `detect-similar-notes` - title similarity for duplicate discovery
+- `detect-large-notes` - oversized notes by size or line count
+- `detect-unorganized-notes` - missing tags, missing frontmatter, isolated notes, and root clutter
+- `vault-inventory` - one-shot vault scan with note counts, tag distribution, tasks, orphans, large notes, and recent notes
+- `task-audit` - missing due dates, task hotspots, completion-style drift, and missing `project` frontmatter
+- `daily-journal-audit` - daily/journal entry points and memo migration candidates
+- `propose-note-refactors` - proposal-only safe refactor mode for moves, renames, and linking suggestions
 
 ## MCP Resources
 

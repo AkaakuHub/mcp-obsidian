@@ -12,6 +12,17 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('delete-note');
     expect(toolNames).toContain('search-by-tags');
     expect(toolNames).toContain('get-note-metadata');
+    expect(toolNames).toContain('get-vault-structure');
+    expect(toolNames).toContain('list-notes-detailed');
+    expect(toolNames).toContain('preview-notes');
+    expect(toolNames).toContain('write-frontmatter');
+    expect(toolNames).toContain('bulk-update-frontmatter');
+    expect(toolNames).toContain('extract-tasks');
+    expect(toolNames).toContain('analyze-links');
+    expect(toolNames).toContain('vault-inventory');
+    expect(toolNames).toContain('task-audit');
+    expect(toolNames).toContain('daily-journal-audit');
+    expect(toolNames).toContain('propose-note-refactors');
   });
 
   it('should have valid schemas for all tools', () => {
