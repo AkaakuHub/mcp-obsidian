@@ -3,7 +3,6 @@ import path from 'path';
 import { config } from './config.js';
 import { Errors } from './errors.js';
 import { prepareFrontmatterUpdate } from './frontmatter.js';
-import { extractFrontmatter } from './metadata.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
 import { listMarkdownFiles } from './vault-analysis.js';
 import { validateFileSize, validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
@@ -63,17 +62,6 @@ async function planFrontmatterUpdate(vaultPath, notePath, fields, merge = true) 
     before: prepared.before,
     after: prepared.after,
     changes: prepared.changes
-  };
-}
-
-export async function readFrontmatter(vaultPath, notePath) {
-  const { content } = await readNoteForMutation(vaultPath, notePath);
-  const { frontmatter, parseError } = extractFrontmatter(content);
-
-  return {
-    path: notePath,
-    frontmatter,
-    parseError
   };
 }
 

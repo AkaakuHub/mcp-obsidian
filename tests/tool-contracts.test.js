@@ -9,16 +9,12 @@ vi.mock('../src/tools.js', () => ({
   writeNote: vi.fn(),
   moveNote: vi.fn(),
   deleteNote: vi.fn(),
-  searchByTags: vi.fn(),
-  getNoteMetadata: vi.fn(),
-  discoverMocs: vi.fn()
+  searchByTags: vi.fn()
 }));
 
 vi.mock('../src/analysis-tools.js', () => ({
   listNotesDetailed: vi.fn(),
-  listNotesFull: vi.fn(),
   listFolders: vi.fn(),
-  readFrontmatter: vi.fn(),
   writeFrontmatter: vi.fn(),
   bulkUpdateFrontmatter: vi.fn(),
   extractTasks: vi.fn(),
@@ -95,29 +91,6 @@ const outputSamples = {
     notes: [{ path: 'note.md', tags: ['tag'] }],
     count: 1
   },
-  'get-note-metadata': {
-    path: 'note.md',
-    frontmatter: { status: 'active' },
-    frontmatterError: null,
-    title: 'Note',
-    titleLine: 1,
-    hasContent: true,
-    contentLength: 42,
-    contentPreview: 'Preview',
-    inlineTags: ['inline'],
-    tags: ['tag', 'inline']
-  },
-  'discover-mocs': {
-    mocs: [{
-      path: 'MOC.md',
-      title: 'MOC',
-      tags: ['moc'],
-      linkedNotes: ['topic-a'],
-      linkCount: 1,
-      linkedMocs: []
-    }],
-    count: 1
-  },
   'list-notes-detailed': {
     notes: [{
       path: 'note.md',
@@ -135,22 +108,11 @@ const outputSamples = {
     errors: [],
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
   },
-  'list-notes-full': {
-    root: '',
-    notes: ['a.md', 'folder/b.md'],
-    count: 2,
-    errors: []
-  },
   'list-folders': {
     root: '',
     folderCount: 2,
     folders: [{ name: 'folder', path: 'folder', depth: 1, noteCount: 1, children: [] }],
     paths: ['folder', 'folder/sub']
-  },
-  'read-frontmatter': {
-    path: 'note.md',
-    frontmatter: { status: 'active' },
-    parseError: null
   },
   'write-frontmatter': {
     path: 'note.md',
@@ -250,12 +212,8 @@ const toolArgs = {
   'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   'delete-note': { path: 'note.md' },
   'search-by-tags': { tags: ['tag'] },
-  'get-note-metadata': { path: 'note.md' },
-  'discover-mocs': {},
   'list-notes-detailed': {},
-  'list-notes-full': {},
   'list-folders': {},
-  'read-frontmatter': { path: 'note.md' },
   'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
   'bulk-update-frontmatter': { fields: { area: 'work' } },
   'extract-tasks': {},
@@ -280,13 +238,9 @@ describe('tool contracts', () => {
     tools.moveNote.mockResolvedValue(outputSamples['move-note']);
     tools.deleteNote.mockResolvedValue('note.md');
     tools.searchByTags.mockResolvedValue(outputSamples['search-by-tags']);
-    tools.getNoteMetadata.mockResolvedValue(outputSamples['get-note-metadata']);
-    tools.discoverMocs.mockResolvedValue(outputSamples['discover-mocs']);
 
     analysisTools.listNotesDetailed.mockResolvedValue(outputSamples['list-notes-detailed']);
-    analysisTools.listNotesFull.mockResolvedValue(outputSamples['list-notes-full']);
     analysisTools.listFolders.mockResolvedValue(outputSamples['list-folders']);
-    analysisTools.readFrontmatter.mockResolvedValue(outputSamples['read-frontmatter']);
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);
     analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-update-frontmatter']);
     analysisTools.extractTasks.mockResolvedValue(outputSamples['extract-tasks']);

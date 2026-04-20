@@ -12,9 +12,7 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('move-note');
     expect(toolNames).toContain('delete-note');
     expect(toolNames).toContain('search-by-tags');
-    expect(toolNames).toContain('get-note-metadata');
     expect(toolNames).toContain('list-notes-detailed');
-    expect(toolNames).toContain('list-notes-full');
     expect(toolNames).toContain('list-folders');
     expect(toolNames).toContain('write-frontmatter');
     expect(toolNames).toContain('bulk-update-frontmatter');
@@ -40,9 +38,6 @@ describe('Tool Definitions', () => {
   it('should have required fields defined correctly', () => {
     const searchTool = toolDefinitions.find(t => t.name === 'search-vault');
     expect(searchTool.inputSchema.required).toEqual(['query']);
-
-    const readTool = toolDefinitions.find(t => t.name === 'read-note');
-    expect(readTool.inputSchema.required).toEqual(['path']);
 
     const writeTool = toolDefinitions.find(t => t.name === 'write-note');
     expect(writeTool.inputSchema.required).toEqual(['path', 'content']);

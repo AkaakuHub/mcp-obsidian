@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/tools.js', () => ({
-  discoverMocs: vi.fn(),
-  getNoteMetadata: vi.fn(),
   listNotes: vi.fn(),
   readNote: vi.fn(),
   readResolvedNote: vi.fn(),

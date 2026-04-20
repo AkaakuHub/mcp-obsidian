@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { deleteNote, discoverMocs, getNoteMetadata, listNotes, moveNote, readResolvedNote, searchByFilename, searchByTags, searchVault, writeNote } from '../tools.js';
+import { deleteNote, listNotes, moveNote, readResolvedNote, searchByFilename, searchByTags, searchVault, writeNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -72,16 +72,6 @@ export function createBaseHandlers(vaultPath) {
       const { tags, directory, caseSensitive = false } = args;
       const result = await searchByTags(vaultPath, tags, directory, caseSensitive);
       return structuredResponse(result, `Found ${result.count} notes with requested tags`, createMetadata(startTime, { tool: toolName, tagsSearched: tags.length }));
-    },
-    'get-note-metadata': async (args, startTime, toolName) => {
-      const { path: notePath, batch = false, directory, limit = 50, offset = 0 } = args;
-      const pathArg = batch && directory ? directory : notePath;
-      const result = await getNoteMetadata(vaultPath, pathArg, { batch, limit, offset });
-      return structuredResponse(result, batch ? `Retrieved metadata for ${result.count} notes` : `Retrieved metadata for ${notePath}`, createMetadata(startTime, { tool: toolName, mode: batch ? 'batch' : 'single' }));
-    },
-    'discover-mocs': async (args, startTime, toolName) => {
-      const result = await discoverMocs(vaultPath, args);
-      return structuredResponse(result, `Found ${result.count} MOCs`, createMetadata(startTime, { tool: toolName, mocsFound: result.count }));
     }
   };
 }

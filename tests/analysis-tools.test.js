@@ -5,7 +5,7 @@ vi.mock('glob');
 
 import { readFile, stat, writeFile } from 'fs/promises';
 import { glob } from 'glob';
-import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, listNotesDetailed, readFrontmatter, writeFrontmatter } from '../src/analysis-tools.js';
+import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, listNotesDetailed, writeFrontmatter } from '../src/analysis-tools.js';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('analysis tools', () => {
@@ -53,15 +53,6 @@ describe('analysis tools', () => {
     expect(dryRun.written).toBe(false);
     expect(applied.written).toBe(true);
     expect(writeFile).toHaveBeenCalledTimes(1);
-  });
-
-  it('should expose frontmatter parse errors on read', async () => {
-    readFile.mockResolvedValue('---\ntags: [broken\n---\n# Task');
-
-    const result = await readFrontmatter(vaultPath, 'task.md');
-
-    expect(result.frontmatter).toEqual({});
-    expect(result.parseError).toContain('Flow sequence');
   });
 
   it('should reject frontmatter writes when existing YAML is invalid', async () => {

@@ -29,32 +29,6 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'list-notes-full',
-    title: 'List Notes Full',
-    description: 'Return the full note path list for a vault or directory without pagination so batch reorganizations can target exact files.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        directory: { type: 'string', description: 'Optional vault-relative directory to scan.' },
-        sort: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction for returned paths.' }
-      },
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        root: { type: 'string' },
-        notes: { type: 'array', items: { type: 'string' } },
-        count: { type: 'integer', minimum: 0 },
-        errors: { type: 'array' }
-      },
-      required: ['root', 'notes', 'count', 'errors'],
-      additionalProperties: false
-    }
-  },
-  {
     name: 'list-folders',
     title: 'List Folders',
     description: 'Return the folder tree and flattened folder paths for structural cleanup without reading note bodies.',
@@ -76,31 +50,6 @@ export const analysisToolDefinitions = [
         paths: { type: 'array', items: { type: 'string' } }
       },
       required: ['root', 'folderCount', 'folders', 'paths'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: 'read-frontmatter',
-    title: 'Read Frontmatter',
-    description: 'Return a note frontmatter block and any parse error without mutating the note.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        path: { type: 'string', pattern: '\\.md$', description: 'Vault-relative markdown path to inspect.' }
-      },
-      required: ['path'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        path: { type: 'string' },
-        frontmatter: { type: 'object' },
-        parseError: { type: ['string', 'null'] }
-      },
-      required: ['path', 'frontmatter', 'parseError'],
       additionalProperties: false
     }
   },

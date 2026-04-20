@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, listFolders, listNotesDetailed, listNotesFull, moveMany, previewMoveImpact, readFrontmatter, writeFrontmatter } from '../analysis-tools.js';
+import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, listFolders, listNotesDetailed, moveMany, previewMoveImpact, writeFrontmatter } from '../analysis-tools.js';
 
 function formatLineList(items, emptyMessage) {
   return items.length > 0 ? items.join('\n') : emptyMessage;
@@ -11,14 +11,6 @@ export function createAnalysisHandlers(vaultPath) {
       const result = await listNotesDetailed(vaultPath, args);
       return structuredResponse(result, `Detailed listing for ${result.count} notes`, createMetadata(startTime, { tool: toolName }));
     },
-    'list-notes-full': async (args, startTime, toolName) => {
-      const result = await listNotesFull(vaultPath, args);
-      return structuredResponse(
-        result,
-        `Listed ${result.count} note paths\n${formatLineList(result.notes, '(no notes found)')}`,
-        createMetadata(startTime, { tool: toolName })
-      );
-    },
     'list-folders': async (args, startTime, toolName) => {
       const result = await listFolders(vaultPath, args);
       return structuredResponse(
@@ -26,10 +18,6 @@ export function createAnalysisHandlers(vaultPath) {
         `Listed ${result.folderCount} folders\n${formatLineList(result.paths, '(no folders found)')}`,
         createMetadata(startTime, { tool: toolName })
       );
-    },
-    'read-frontmatter': async (args, startTime, toolName) => {
-      const result = await readFrontmatter(vaultPath, args.path);
-      return structuredResponse(result, `Read frontmatter for ${args.path}`, createMetadata(startTime, { tool: toolName }));
     },
     'write-frontmatter': async (args, startTime, toolName) => {
       const result = await writeFrontmatter(vaultPath, args.path, args.fields, { merge: args.merge, dryRun: args.dryRun });

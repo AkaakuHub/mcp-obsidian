@@ -27,7 +27,6 @@ This server instead works directly with Obsidian vault files on disk, making it 
 ## Recent Updates
 
 ### 🎉 New Features
-- **🗺️ MOC Discovery**: New `discover-mocs` tool summarizes Maps of Content and their relationships.
 - **Context Snippets in Search Results**: Search results now include surrounding lines and highlighted snippets for better context understanding
 - **Match Highlighting**: Search terms are highlighted with **bold** markers in results
 - **Improved Search Result Structure**: Results are now grouped by file with match counts and snippets
@@ -176,11 +175,6 @@ List markdown files in your vault or a specific directory with pagination.
 - Returns file paths, page counts, and total count
 - Supports directory filtering
 
-### list-notes-full
-Return the complete note path list without pagination.
-- Useful when you need exact source paths for bulk reorganization
-- Returns both `structuredContent.notes` and a plain-text path list
-
 ### list-folders
 Return the folder tree and flattened folder paths.
 - Useful before large-scale moves or area/project cleanup
@@ -217,25 +211,6 @@ Find notes containing specific tags.
 - AND operation for multiple tags
 - Case-sensitive/insensitive matching
 
-### get-note-metadata
-Get metadata for one note or many notes without returning full note content.
-- Single note mode: Get metadata for a specific note
-- Batch mode: Page through metadata for notes in the vault
-- Extracts frontmatter, title, normalized tags, and content preview
-- Returns metadata and previews instead of full document bodies
-- The server still reads note contents internally to extract metadata safely
-- Useful for building note indexes or dashboards
-
-### discover-mocs
-Discover MOCs (Maps of Content) to inspect your vault's knowledge structure.
-
-[Maps of Content](https://notes.linkingyourthinking.com/Cards/MOCs+Overview) are organizational hub notes (tagged with `#moc`) that link to related content. They were pioneered by [Nick Milo](https://www.linkingyourthinking.com/) as a flexible alternative to rigid folder structures.
-
-**Features:**
-- Lists detected MOCs in the scan scope with their linked notes
-- Shows MOC hierarchy (which MOCs link to other MOCs)
-- Displays normalized wikilink targets from each MOC
-
 ### preview-move-impact
 Preview backlink fallout before moving or renaming a note.
 - Highlights links that would stop resolving after the move
@@ -247,40 +222,15 @@ Preview or apply multiple note moves in one call.
 - Validates all moves before writing
 - Attempts rollback if a move fails after earlier moves succeeded
 
-**Why use MOCs?**
-- **Context**: See what knowledge areas exist in your vault
-- **Scale**: Understand how developed each area is
-- **Relationships**: Discover how topics connect through MOC hierarchy
-- **Entry points**: Find strong starting points for exploration
-
-**Example Output:**
-```
-Found 10 MOCs
-
-📚 Vault Index (24 linked notes)
-   Path: 00-INDEX.md
-   Links: Work-MOC, AI-MOC, Development-MOC, DevOps-MOC, Tools-MOC, Personal-MOC, Homelab-MOC, MCP-Framework-MOC
-   🔗 Links to MOCs: Work-MOC, AI-MOC, Development-MOC, DevOps-MOC, Tools-MOC, Personal-MOC, Homelab-MOC, MCP-Framework-MOC
-
-📚 AI-MOC (61 linked notes)
-   Path: _mocs/AI-MOC.md
-   Links: chatgpt, ollama, langchain, aider, gp-nvim, MCP-Framework-MOC, ...
-   🔗 Links to MOCs: MCP-Framework-MOC, Development-MOC, DevOps-MOC, Tools-MOC, Work-MOC, 00-INDEX
-```
-
-This tool gives agents a structural overview of the vault before blind keyword searching.
-
 ## New Organization And Audit Tools
 
 These tools are aimed at vault cleanup, inventory, and preview-first bulk operations.
 
 ### Structure and note inspection
 - `list-notes-detailed` - path, created/updated timestamps, tags, size, task count, link count, backlink count
-- `list-notes-full` - complete note path list for exact move targets
 - `list-folders` - folder tree and flat folder paths
 
 ### Frontmatter and bulk edits
-- `read-frontmatter` - return parsed frontmatter fields and parse errors
 - `write-frontmatter` - single-note frontmatter update with `dryRun`
 - `bulk-update-frontmatter` - multi-note frontmatter updates with `dryRun`, per-note diffs, and target counts
 

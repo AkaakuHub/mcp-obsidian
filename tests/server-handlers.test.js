@@ -11,9 +11,7 @@ vi.mock('../src/tools.js', () => ({
   writeNote: vi.fn(),
   moveNote: vi.fn(),
   deleteNote: vi.fn(),
-  searchByTags: vi.fn(),
-  getNoteMetadata: vi.fn(),
-  discoverMocs: vi.fn()
+  searchByTags: vi.fn()
 }));
 
 import { searchVault, listNotes, readNote, writeNote, moveNote, deleteNote, searchByTags } from '../src/tools.js';

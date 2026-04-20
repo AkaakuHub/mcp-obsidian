@@ -10,20 +10,6 @@ function assertValid(validationResult, errorFactory) {
   }
 }
 
-export async function listNotesFull(vaultPath, options = {}) {
-  const { directory = null, sort = 'asc' } = options;
-  const snapshot = await getVaultSnapshot(vaultPath, { directory });
-  const notes = snapshot.notes.map((note) => note.path);
-  notes.sort((left, right) => sort === 'desc' ? right.localeCompare(left) : left.localeCompare(right));
-
-  return {
-    root: directory || '',
-    notes,
-    count: notes.length,
-    errors: snapshot.errors
-  };
-}
-
 export async function listFolders(vaultPath, options = {}) {
   const { directory = null } = options;
   const snapshot = await getVaultSnapshot(vaultPath, { directory });

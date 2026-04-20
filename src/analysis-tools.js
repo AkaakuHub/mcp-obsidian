@@ -1,5 +1,4 @@
 export {
-  readFrontmatter,
   writeFrontmatter,
   bulkUpdateFrontmatter
 } from './frontmatter-tools.js';
@@ -9,7 +8,6 @@ export {
   analyzeLinks
 } from './analysis-query-tools.js';
 export {
-  listNotesFull,
   listFolders,
   previewMoveImpact,
   moveMany
