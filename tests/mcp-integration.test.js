@@ -4,6 +4,16 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { toolDefinitions } from '../src/toolDefinitions.js';
+import { TOOL_NAMES } from '../src/tool-names.js';
+
+const coreToolNames = [
+  TOOL_NAMES.SEARCH_VAULT,
+  TOOL_NAMES.LIST_NOTES,
+  TOOL_NAMES.READ_NOTE,
+  TOOL_NAMES.UPDATE_NOTE,
+  TOOL_NAMES.DELETE_NOTE
+];
 
 describe('MCP Server Integration', () => {
   let server;
@@ -38,100 +48,31 @@ describe('MCP Server Integration', () => {
   describe('ListTools handler', () => {
     it('should return all available tools', async () => {
       const mockHandler = vi.fn().mockResolvedValue({
-        tools: [
-          {
-            name: 'search-vault',
-            description: 'Search note contents using boolean operators, field filters, phrases, and optional context snippets.',
-            inputSchema: { type: 'object' }
-          },
-          {
-            name: 'list-notes',
-            description: 'List markdown note paths in the vault or a specific directory without reading note contents.',
-            inputSchema: { type: 'object' }
-          },
-          {
-            name: 'read-note',
-            description: 'Read the full content of one markdown note.',
-            inputSchema: { type: 'object' }
-          },
-          {
-            name: 'update-note',
-            description: 'Create, replace, append to, or patch part of a markdown note.',
-            inputSchema: { type: 'object' }
-          },
-          {
-            name: 'delete-note',
-            description: 'Delete a markdown note by vault-relative path.',
-            inputSchema: { type: 'object' }
-          }
-        ]
+        tools: toolDefinitions.filter((tool) => coreToolNames.includes(tool.name))
       });
 
       server.setRequestHandler(ListToolsRequestSchema, mockHandler);
 
       const response = await mockHandler({});
       
-      expect(response.tools).toHaveLength(5);
-      expect(response.tools.map(t => t.name)).toEqual([
-        'search-vault',
-        'list-notes',
-        'read-note',
-        'update-note',
-        'delete-note'
-      ]);
+      expect(response.tools).toHaveLength(coreToolNames.length);
+      expect(response.tools.map((tool) => tool.name)).toEqual(coreToolNames);
     });
   });
 
   describe('Tool input validation', () => {
-    const toolSchemas = {
-      'search-vault': {
-        type: 'object',
-        properties: {
-          query: { type: 'string' },
-          path: { type: 'string' },
-          caseSensitive: { type: 'boolean' }
-        },
-        required: ['query']
-      },
-      'list-notes': {
-        type: 'object',
-        properties: {
-          directory: { type: 'string' }
-        }
-      },
-      'read-note': {
-        type: 'object',
-        properties: {
-          path: { type: 'string' }
-        },
-        required: ['path']
-      },
-      'update-note': {
-        type: 'object',
-        properties: {
-          path: { type: 'string' },
-          mode: { type: 'string' },
-          content: { type: 'string' }
-        },
-        required: ['path']
-      },
-      'delete-note': {
-        type: 'object',
-        properties: {
-          path: { type: 'string' }
-        },
-        required: ['path']
-      }
-    };
+    const toolSchemas = Object.fromEntries(
+      toolDefinitions.map((tool) => [tool.name, tool.inputSchema])
+    );
 
     it('should validate required parameters', () => {
-      const searchSchema = toolSchemas['search-vault'];
+      const searchSchema = toolSchemas[TOOL_NAMES.SEARCH_VAULT];
       expect(searchSchema.required).toContain('query');
 
-      const readSchema = toolSchemas['read-note'];
+      const readSchema = toolSchemas[TOOL_NAMES.READ_NOTE];
       expect(readSchema.required).toContain('path');
 
-      const updateSchema = toolSchemas['update-note'];
+      const updateSchema = toolSchemas[TOOL_NAMES.UPDATE_NOTE];
       expect(updateSchema.required).toContain('path');
     });
 
@@ -168,7 +109,7 @@ describe('MCP Server Integration', () => {
 
       await expect(mockHandler({
         params: {
-          name: 'read-note',
+          name: TOOL_NAMES.READ_NOTE,
           arguments: {}
         }
       })).rejects.toThrow('Missing required argument: path');

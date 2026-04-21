@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createServer } from '../src/server.js';
+import { TOOL_NAMES } from '../src/tool-names.js';
 
 // Mock the tools module
 vi.mock('../src/tools.js', () => ({
@@ -45,7 +46,7 @@ describe('Server Handlers', () => {
   });
 
   describe('Tool execution flow', () => {
-    it('should call searchVault when search-vault tool is used', async () => {
+    it(`should call searchVault when ${TOOL_NAMES.SEARCH_VAULT} tool is used`, async () => {
       const mockResult = { results: [], count: 0 };
       searchVault.mockResolvedValue(mockResult);
       
@@ -55,7 +56,7 @@ describe('Server Handlers', () => {
       expect(searchVault).toHaveBeenCalledWith(mockVaultPath, 'test', null, false);
     });
 
-    it('should call listNotes when list-notes tool is used', async () => {
+    it(`should call listNotes when ${TOOL_NAMES.LIST_NOTES} tool is used`, async () => {
       const mockResult = { notes: ['note1.md', 'note2.md'], count: 2 };
       listNotes.mockResolvedValue(mockResult);
       
@@ -64,7 +65,7 @@ describe('Server Handlers', () => {
       expect(listNotes).toHaveBeenCalledWith(mockVaultPath, 'folder');
     });
 
-    it('should call readNote when read-note tool is used', async () => {
+    it(`should call readNote when ${TOOL_NAMES.READ_NOTE} tool is used`, async () => {
       const mockContent = '# Test Note';
       readNote.mockResolvedValue(mockContent);
       
@@ -73,7 +74,7 @@ describe('Server Handlers', () => {
       expect(readNote).toHaveBeenCalledWith(mockVaultPath, 'test.md');
     });
 
-    it('should call updateNote when update-note tool is used', async () => {
+    it(`should call updateNote when ${TOOL_NAMES.UPDATE_NOTE} tool is used`, async () => {
       updateNote.mockResolvedValue({ path: 'test.md', status: 'written', previousContentLength: 0, newContentLength: 9, changeCount: 1 });
       
       const result = await updateNote(mockVaultPath, 'test.md', { mode: 'replace', content: '# Content' });
@@ -81,7 +82,7 @@ describe('Server Handlers', () => {
       expect(updateNote).toHaveBeenCalledWith(mockVaultPath, 'test.md', { mode: 'replace', content: '# Content' });
     });
 
-    it('should call deleteNote when delete-note tool is used', async () => {
+    it(`should call deleteNote when ${TOOL_NAMES.DELETE_NOTE} tool is used`, async () => {
       deleteNote.mockResolvedValue('test.md');
       
       const result = await deleteNote(mockVaultPath, 'test.md');
@@ -89,7 +90,7 @@ describe('Server Handlers', () => {
       expect(deleteNote).toHaveBeenCalledWith(mockVaultPath, 'test.md');
     });
 
-    it('should call moveNote when move-note tool is used', async () => {
+    it(`should call moveNote when ${TOOL_NAMES.MOVE_NOTE} tool is used`, async () => {
       const mockResult = { fromPath: 'inbox/test.md', path: 'areas/test.md', status: 'moved' };
       moveNote.mockResolvedValue(mockResult);
 

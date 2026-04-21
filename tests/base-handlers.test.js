@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TOOL_NAMES } from '../src/tool-names.js';
 
 vi.mock('../src/tools.js', () => ({
   listNotes: vi.fn(),
@@ -21,11 +22,11 @@ describe('base handlers', () => {
     vi.clearAllMocks();
   });
 
-  it('returns structured content for read-note', async () => {
+  it(`returns structured content for ${TOOL_NAMES.READ_NOTE}`, async () => {
     readResolvedNote.mockResolvedValue({ path: 'resolved/note.md', content: '# Note' });
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['read-note']({ path: 'note.md' }, Date.now(), 'read-note');
+    const response = await handlers[TOOL_NAMES.READ_NOTE]({ path: 'note.md' }, Date.now(), TOOL_NAMES.READ_NOTE);
 
     expect(response.structuredContent).toEqual({
       path: 'resolved/note.md',
@@ -34,7 +35,7 @@ describe('base handlers', () => {
     expect(response.content[0].text).toContain('Read note resolved/note.md');
   });
 
-  it('returns structured content for update-note', async () => {
+  it(`returns structured content for ${TOOL_NAMES.UPDATE_NOTE}`, async () => {
     updateNote.mockResolvedValue({
       path: 'note.md',
       status: 'patched',
@@ -44,7 +45,7 @@ describe('base handlers', () => {
     });
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['update-note']({ path: 'note.md', mode: 'patch', patches: [{ match: 'a', replace: 'b' }] }, Date.now(), 'update-note');
+    const response = await handlers[TOOL_NAMES.UPDATE_NOTE]({ path: 'note.md', mode: 'patch', patches: [{ match: 'a', replace: 'b' }] }, Date.now(), TOOL_NAMES.UPDATE_NOTE);
 
     expect(response.structuredContent).toEqual({
       path: 'note.md',
@@ -55,11 +56,11 @@ describe('base handlers', () => {
     });
   });
 
-  it('returns structured content for delete-note', async () => {
+  it(`returns structured content for ${TOOL_NAMES.DELETE_NOTE}`, async () => {
     deleteNote.mockResolvedValue('note.md');
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['delete-note']({ path: 'note.md' }, Date.now(), 'delete-note');
+    const response = await handlers[TOOL_NAMES.DELETE_NOTE]({ path: 'note.md' }, Date.now(), TOOL_NAMES.DELETE_NOTE);
 
     expect(response.structuredContent).toEqual({
       path: 'note.md',
@@ -67,11 +68,11 @@ describe('base handlers', () => {
     });
   });
 
-  it('returns structured content for move-note', async () => {
+  it(`returns structured content for ${TOOL_NAMES.MOVE_NOTE}`, async () => {
     moveNote.mockResolvedValue({ fromPath: 'inbox/note.md', path: 'areas/note.md', status: 'moved' });
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['move-note']({ sourcePath: 'note.md', destinationPath: 'areas/note.md' }, Date.now(), 'move-note');
+    const response = await handlers[TOOL_NAMES.MOVE_NOTE]({ sourcePath: 'note.md', destinationPath: 'areas/note.md' }, Date.now(), TOOL_NAMES.MOVE_NOTE);
 
     expect(response.structuredContent).toEqual({
       fromPath: 'inbox/note.md',
@@ -109,13 +110,13 @@ describe('base handlers', () => {
     });
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['search-vault']({ query: 'match', includeContext: true }, Date.now(), 'search-vault');
+    const response = await handlers[TOOL_NAMES.SEARCH_VAULT]({ query: 'match', includeContext: true }, Date.now(), TOOL_NAMES.SEARCH_VAULT);
 
     expect(response.structuredContent.files[0].matches[0].context.lines).toHaveLength(3);
     expect(response.structuredContent.files[0].matches[0].context.highlighted).toBe('**match** line');
   });
 
-  it('passes includeFolders through list-notes', async () => {
+  it(`passes includeFolders through ${TOOL_NAMES.LIST_NOTES}`, async () => {
     const { listNotes } = await import('../src/tools.js');
     listNotes.mockResolvedValue({
       notes: ['note.md'],
@@ -128,7 +129,7 @@ describe('base handlers', () => {
     });
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['list-notes']({ includeFolders: true }, Date.now(), 'list-notes');
+    const response = await handlers[TOOL_NAMES.LIST_NOTES]({ includeFolders: true }, Date.now(), TOOL_NAMES.LIST_NOTES);
 
     expect(listNotes).toHaveBeenCalledWith(vaultPath, undefined, 100, 0, true);
     expect(response.structuredContent.folderCount).toBe(1);

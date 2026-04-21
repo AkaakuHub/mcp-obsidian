@@ -1,6 +1,8 @@
+import { TOOL_NAMES } from '../tool-names.js';
+
 export const analysisToolDefinitions = [
   {
-    name: 'write-frontmatter',
+    name: TOOL_NAMES.WRITE_FRONTMATTER,
     title: 'Write Frontmatter',
     description: 'Preview or apply a frontmatter update for one note. `dryRun: true` is the safe default.',
     inputSchema: {
@@ -31,7 +33,7 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'bulk-write-frontmatter',
+    name: TOOL_NAMES.BULK_WRITE_FRONTMATTER,
     title: 'Bulk Write Frontmatter',
     description: 'Preview or apply frontmatter updates to many notes. If both `paths` and `directory` are given, explicit `paths` win. Validation happens before writes.',
     inputSchema: {
@@ -67,7 +69,7 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'extract-tasks',
+    name: TOOL_NAMES.EXTRACT_TASKS,
     title: 'Extract Tasks',
     description: 'Extract markdown tasks across the vault with completion state, due dates, and per-note task summaries.',
     inputSchema: {
@@ -96,7 +98,7 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'analyze-links',
+    name: TOOL_NAMES.ANALYZE_LINKS,
     title: 'Analyze Links',
     description: 'Inspect link relationships for one note or the whole vault, including backlinks, orphans, and hubs.',
     inputSchema: {
@@ -142,7 +144,7 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'bulk-move-note',
+    name: TOOL_NAMES.BULK_MOVE_NOTE,
     title: 'Bulk Move Note',
     description: 'Preview or apply a batch of note moves with upfront validation and rollback attempts if a write fails mid-run.',
     inputSchema: {

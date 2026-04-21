@@ -1,127 +1,58 @@
 import { describe, it, expect } from 'vitest';
 import { createServer } from '../src/server.js';
+import { toolDefinitions } from '../src/toolDefinitions.js';
+import { TOOL_NAMES } from '../src/tool-names.js';
+
+function getToolDefinition(name) {
+  return toolDefinitions.find((tool) => tool.name === name);
+}
 
 describe('Server Tools Definition', () => {
-  it('should define search-vault tool correctly', () => {
-    const toolDef = {
-      name: 'search-vault',
-      description: 'Search note contents using boolean operators, field filters, phrases, and optional context snippets.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description: 'Search query',
-          },
-          path: {
-            type: 'string',
-            description: 'Optional path within vault to search',
-          },
-          caseSensitive: {
-            type: 'boolean',
-            description: 'Case sensitive search (default: false)',
-          },
-        },
-        required: ['query'],
-      },
-    };
+  it(`should define ${TOOL_NAMES.SEARCH_VAULT} tool correctly`, () => {
+    const toolDef = getToolDefinition(TOOL_NAMES.SEARCH_VAULT);
 
-    expect(toolDef.name).toBe('search-vault');
+    expect(toolDef.name).toBe(TOOL_NAMES.SEARCH_VAULT);
+    expect(toolDef.description).toContain('Search note contents');
     expect(toolDef.inputSchema.required).toContain('query');
     expect(toolDef.inputSchema.properties.query).toBeDefined();
     expect(toolDef.inputSchema.properties.path).toBeDefined();
     expect(toolDef.inputSchema.properties.caseSensitive).toBeDefined();
   });
 
-  it('should define list-notes tool correctly', () => {
-    const toolDef = {
-      name: 'list-notes',
-      description: 'List markdown note paths in the vault or a specific directory without reading note contents.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          directory: {
-            type: 'string',
-            description: 'Directory path relative to vault root (optional)',
-          },
-        },
-      },
-    };
+  it(`should define ${TOOL_NAMES.LIST_NOTES} tool correctly`, () => {
+    const toolDef = getToolDefinition(TOOL_NAMES.LIST_NOTES);
 
-    expect(toolDef.name).toBe('list-notes');
+    expect(toolDef.name).toBe(TOOL_NAMES.LIST_NOTES);
+    expect(toolDef.description).toContain('List markdown note paths');
     expect(toolDef.inputSchema.properties.directory).toBeDefined();
     expect(toolDef.inputSchema.required).toBeUndefined();
   });
 
-  it('should define read-note tool correctly', () => {
-    const toolDef = {
-      name: 'read-note',
-      description: 'Read the full content of one markdown note.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Path to the note relative to vault root',
-          },
-        },
-        required: ['path'],
-      },
-    };
+  it(`should define ${TOOL_NAMES.READ_NOTE} tool correctly`, () => {
+    const toolDef = getToolDefinition(TOOL_NAMES.READ_NOTE);
 
-    expect(toolDef.name).toBe('read-note');
+    expect(toolDef.name).toBe(TOOL_NAMES.READ_NOTE);
+    expect(toolDef.description).toContain('Read the full content');
     expect(toolDef.inputSchema.required).toContain('path');
     expect(toolDef.inputSchema.properties.path).toBeDefined();
   });
 
-  it('should define update-note tool correctly', () => {
-    const toolDef = {
-      name: 'update-note',
-      description: 'Create, replace, append to, or patch part of a markdown note.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Path to the note relative to vault root',
-          },
-          mode: {
-            type: 'string',
-            description: 'Update mode',
-          },
-          content: {
-            type: 'string',
-            description: 'Content of the note',
-          },
-        },
-        required: ['path'],
-      },
-    };
+  it(`should define ${TOOL_NAMES.UPDATE_NOTE} tool correctly`, () => {
+    const toolDef = getToolDefinition(TOOL_NAMES.UPDATE_NOTE);
 
-    expect(toolDef.name).toBe('update-note');
+    expect(toolDef.name).toBe(TOOL_NAMES.UPDATE_NOTE);
+    expect(toolDef.description).toContain('Create, replace, append to, or patch');
     expect(toolDef.inputSchema.required).toContain('path');
     expect(toolDef.inputSchema.properties.path).toBeDefined();
     expect(toolDef.inputSchema.properties.mode).toBeDefined();
     expect(toolDef.inputSchema.properties.content).toBeDefined();
   });
 
-  it('should define delete-note tool correctly', () => {
-    const toolDef = {
-      name: 'delete-note',
-      description: 'Delete a markdown note by vault-relative path.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'Path to the note relative to vault root',
-          },
-        },
-        required: ['path'],
-      },
-    };
+  it(`should define ${TOOL_NAMES.DELETE_NOTE} tool correctly`, () => {
+    const toolDef = getToolDefinition(TOOL_NAMES.DELETE_NOTE);
 
-    expect(toolDef.name).toBe('delete-note');
+    expect(toolDef.name).toBe(TOOL_NAMES.DELETE_NOTE);
+    expect(toolDef.description).toContain('Delete a markdown note');
     expect(toolDef.inputSchema.required).toContain('path');
     expect(toolDef.inputSchema.properties.path).toBeDefined();
   });

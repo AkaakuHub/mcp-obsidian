@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createServer } from '../src/server.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { TOOL_NAMES } from '../src/tool-names.js';
 
 // Mock fs and glob for e2e tests
 vi.mock('fs/promises');
@@ -45,7 +46,7 @@ describe('Server E2E Tests', () => {
   });
 
   describe('Tool execution through server', () => {
-    it('should handle search-vault requests', async () => {
+    it(`should handle ${TOOL_NAMES.SEARCH_VAULT} requests`, async () => {
       // Mock the file system
       glob.mockResolvedValue(['/test/vault/note.md']);
       readFile.mockResolvedValue('This is a test note');
@@ -55,7 +56,7 @@ describe('Server E2E Tests', () => {
       expect(readFile).toBeDefined();
     });
 
-    it('should handle list-notes requests', async () => {
+    it(`should handle ${TOOL_NAMES.LIST_NOTES} requests`, async () => {
       glob.mockResolvedValue([
         '/test/vault/note1.md',
         '/test/vault/note2.md'
@@ -65,14 +66,14 @@ describe('Server E2E Tests', () => {
       expect(glob).toBeDefined();
     });
 
-    it('should handle read-note requests', async () => {
+    it(`should handle ${TOOL_NAMES.READ_NOTE} requests`, async () => {
       readFile.mockResolvedValue('# Note Content');
       
       // Verify mock is set up
       expect(readFile).toBeDefined();
     });
 
-    it('should handle update-note requests', async () => {
+    it(`should handle ${TOOL_NAMES.UPDATE_NOTE} requests`, async () => {
       mkdir.mockResolvedValue();
       writeFile.mockResolvedValue();
 
@@ -81,7 +82,7 @@ describe('Server E2E Tests', () => {
       expect(writeFile).toBeDefined();
     });
 
-    it('should handle delete-note requests', async () => {
+    it(`should handle ${TOOL_NAMES.DELETE_NOTE} requests`, async () => {
       unlink.mockResolvedValue();
 
       // Verify mock is set up

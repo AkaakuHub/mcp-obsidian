@@ -1,6 +1,8 @@
+import { TOOL_NAMES } from '../tool-names.js';
+
 export const baseToolDefinitions = [
   {
-    name: 'search-vault',
+    name: TOOL_NAMES.SEARCH_VAULT,
     title: 'Search Vault',
     description: 'Search note contents using boolean operators, field filters, phrases, and optional context snippets. Use `OR` explicitly when any-term matching is desired.',
     inputSchema: {
@@ -33,7 +35,7 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'search-by-filename',
+    name: TOOL_NAMES.SEARCH_BY_FILENAME,
     title: 'Search by Filename',
     description: 'Search notes by filename, stem, or vault-relative path. Use this when the note name is known but the H1 title may differ.',
     inputSchema: {
@@ -63,7 +65,7 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'list-notes',
+    name: TOOL_NAMES.LIST_NOTES,
     title: 'List Notes',
     description: 'List markdown note paths in the vault or a specific directory without reading note contents. Optionally include the folder tree in the same response.',
     inputSchema: {
@@ -94,7 +96,7 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'read-note',
+    name: TOOL_NAMES.READ_NOTE,
     title: 'Read Note',
     description: 'Read the full content of one markdown note. Accepts an exact path or a unique filename resolved anywhere in the vault.',
     inputSchema: {
@@ -118,7 +120,7 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'update-note',
+    name: TOOL_NAMES.UPDATE_NOTE,
     title: 'Update Note',
     description: 'Create, replace, append to, or patch part of a markdown note. Use `replace` for full writes, `append` for tail additions, and `patch` for exact substring edits.',
     inputSchema: {
@@ -163,7 +165,7 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'move-note',
+    name: TOOL_NAMES.MOVE_NOTE,
     title: 'Move Note',
     description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault.',
     inputSchema: {
@@ -190,7 +192,7 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'delete-note',
+    name: TOOL_NAMES.DELETE_NOTE,
     title: 'Delete Note',
     description: 'Delete a markdown note by vault-relative path.',
     inputSchema: {

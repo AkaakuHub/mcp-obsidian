@@ -21,13 +21,14 @@ vi.mock('../src/analysis-tools.js', () => ({
 
 import { createToolHandlerMap } from '../src/tool-handler-map.js';
 import { toolDefinitions } from '../src/toolDefinitions.js';
+import { TOOL_NAMES } from '../src/tool-names.js';
 import * as tools from '../src/tools.js';
 import * as analysisTools from '../src/analysis-tools.js';
 
 const ajv = new Ajv({ strict: false, allErrors: true });
 
 const outputSamples = {
-  'search-vault': {
+  [TOOL_NAMES.SEARCH_VAULT]: {
     files: [{
       path: 'note.md',
       matchCount: 1,
@@ -49,13 +50,13 @@ const outputSamples = {
     filesSearched: 1,
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
   },
-  'search-by-filename': {
+  [TOOL_NAMES.SEARCH_BY_FILENAME]: {
     results: [{ file: 'folder/note.md', filename: 'note.md', stem: 'note', title: 'Note' }],
     count: 1,
     filesSearched: 1,
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
   },
-  'list-notes': {
+  [TOOL_NAMES.LIST_NOTES]: {
     notes: ['note.md'],
     count: 1,
     pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false },
@@ -64,27 +65,27 @@ const outputSamples = {
     folders: [{ name: 'folder', path: 'folder', depth: 1, noteCount: 1, children: [] }],
     folderPaths: ['folder']
   },
-  'read-note': {
+  [TOOL_NAMES.READ_NOTE]: {
     path: 'resolved/note.md',
     content: '# Note'
   },
-  'update-note': {
+  [TOOL_NAMES.UPDATE_NOTE]: {
     path: 'note.md',
     status: 'patched',
     previousContentLength: 34,
     newContentLength: 42,
     changeCount: 2
   },
-  'move-note': {
+  [TOOL_NAMES.MOVE_NOTE]: {
     fromPath: 'inbox/note.md',
     path: 'areas/note.md',
     status: 'moved'
   },
-  'delete-note': {
+  [TOOL_NAMES.DELETE_NOTE]: {
     path: 'note.md',
     status: 'deleted'
   },
-  'write-frontmatter': {
+  [TOOL_NAMES.WRITE_FRONTMATTER]: {
     path: 'note.md',
     dryRun: true,
     written: false,
@@ -92,7 +93,7 @@ const outputSamples = {
     before: { status: 'todo' },
     after: { status: 'doing' }
   },
-  'bulk-write-frontmatter': {
+  [TOOL_NAMES.BULK_WRITE_FRONTMATTER]: {
     dryRun: true,
     applied: false,
     validationFailed: false,
@@ -110,14 +111,14 @@ const outputSamples = {
       after: { area: 'work' }
     }]
   },
-  'extract-tasks': {
+  [TOOL_NAMES.EXTRACT_TASKS]: {
     tasks: [{ path: 'note.md', line: 3, text: 'todo', completed: false, due: null }],
     count: 1,
     total: 1,
     summaryByNote: [{ path: 'note.md', total: 1, open: 1, completed: 0, dueCount: 0 }],
     pagination: { total: 1, returned: 1, limit: 500, offset: 0, hasMore: false }
   },
-  'analyze-links': {
+  [TOOL_NAMES.ANALYZE_LINKS]: {
     notes: [{
       path: 'note.md',
       outboundCount: 1,
@@ -132,7 +133,7 @@ const outputSamples = {
     orphans: [],
     hubs: []
   },
-  'bulk-move-note': {
+  [TOOL_NAMES.BULK_MOVE_NOTE]: {
     dryRun: true,
     applied: false,
     validationFailed: false,
@@ -146,18 +147,18 @@ const outputSamples = {
 };
 
 const toolArgs = {
-  'search-vault': { query: 'match' },
-  'search-by-filename': { query: 'note.md' },
-  'list-notes': {},
-  'read-note': { path: 'note.md' },
-  'update-note': { path: 'note.md', mode: 'patch', patches: [{ match: 'before', replace: 'after' }] },
-  'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
-  'delete-note': { path: 'note.md' },
-  'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
-  'bulk-write-frontmatter': { fields: { area: 'work' } },
-  'extract-tasks': {},
-  'analyze-links': {},
-  'bulk-move-note': { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] }
+  [TOOL_NAMES.SEARCH_VAULT]: { query: 'match' },
+  [TOOL_NAMES.SEARCH_BY_FILENAME]: { query: 'note.md' },
+  [TOOL_NAMES.LIST_NOTES]: {},
+  [TOOL_NAMES.READ_NOTE]: { path: 'note.md' },
+  [TOOL_NAMES.UPDATE_NOTE]: { path: 'note.md', mode: 'patch', patches: [{ match: 'before', replace: 'after' }] },
+  [TOOL_NAMES.MOVE_NOTE]: { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
+  [TOOL_NAMES.DELETE_NOTE]: { path: 'note.md' },
+  [TOOL_NAMES.WRITE_FRONTMATTER]: { path: 'note.md', fields: { status: 'doing' } },
+  [TOOL_NAMES.BULK_WRITE_FRONTMATTER]: { fields: { area: 'work' } },
+  [TOOL_NAMES.EXTRACT_TASKS]: {},
+  [TOOL_NAMES.ANALYZE_LINKS]: {},
+  [TOOL_NAMES.BULK_MOVE_NOTE]: { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] }
 };
 
 describe('tool contracts', () => {
@@ -166,18 +167,18 @@ describe('tool contracts', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tools.searchVault.mockResolvedValue(outputSamples['search-vault']);
-    tools.searchByFilename.mockResolvedValue(outputSamples['search-by-filename']);
-    tools.listNotes.mockResolvedValue(outputSamples['list-notes']);
-    tools.readResolvedNote.mockResolvedValue(outputSamples['read-note']);
-    tools.updateNote.mockResolvedValue(outputSamples['update-note']);
-    tools.moveNote.mockResolvedValue(outputSamples['move-note']);
+    tools.searchVault.mockResolvedValue(outputSamples[TOOL_NAMES.SEARCH_VAULT]);
+    tools.searchByFilename.mockResolvedValue(outputSamples[TOOL_NAMES.SEARCH_BY_FILENAME]);
+    tools.listNotes.mockResolvedValue(outputSamples[TOOL_NAMES.LIST_NOTES]);
+    tools.readResolvedNote.mockResolvedValue(outputSamples[TOOL_NAMES.READ_NOTE]);
+    tools.updateNote.mockResolvedValue(outputSamples[TOOL_NAMES.UPDATE_NOTE]);
+    tools.moveNote.mockResolvedValue(outputSamples[TOOL_NAMES.MOVE_NOTE]);
     tools.deleteNote.mockResolvedValue('note.md');
-    analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);
-    analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-write-frontmatter']);
-    analysisTools.extractTasks.mockResolvedValue(outputSamples['extract-tasks']);
-    analysisTools.analyzeLinks.mockResolvedValue(outputSamples['analyze-links']);
-    analysisTools.moveMany.mockResolvedValue(outputSamples['bulk-move-note']);
+    analysisTools.writeFrontmatter.mockResolvedValue(outputSamples[TOOL_NAMES.WRITE_FRONTMATTER]);
+    analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_WRITE_FRONTMATTER]);
+    analysisTools.extractTasks.mockResolvedValue(outputSamples[TOOL_NAMES.EXTRACT_TASKS]);
+    analysisTools.analyzeLinks.mockResolvedValue(outputSamples[TOOL_NAMES.ANALYZE_LINKS]);
+    analysisTools.moveMany.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_MOVE_NOTE]);
   });
 
   for (const toolDefinition of toolDefinitions) {
