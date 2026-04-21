@@ -118,17 +118,34 @@ export const baseToolDefinitions = [
     }
   },
   {
-    name: 'write-note',
-    title: 'Write Note',
-    description: 'Create or replace a markdown note. Parent directories are created automatically.',
+    name: 'update-note',
+    title: 'Update Note',
+    description: 'Create, replace, append to, or patch part of a markdown note. Use `replace` for full writes, `append` for tail additions, and `patch` for exact substring edits.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path to create or replace.' },
-        content: { type: 'string', description: 'Complete markdown content to write.' }
+        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path, or a unique markdown filename for append and patch operations.' },
+        mode: { type: 'string', enum: ['replace', 'append', 'patch'], default: 'replace', description: 'Update strategy. `replace` writes the whole note, `append` adds to the end, `patch` applies exact substring replacements.' },
+        content: { type: 'string', description: 'Required for `replace` and `append`. Complete content for `replace`, appended text for `append`.' },
+        separator: { type: 'string', default: '\n\n', description: 'Used only for `append`. Inserted between existing content and appended text when the note is not empty.' },
+        patches: {
+          type: 'array',
+          description: 'Used only for `patch`. Applied in order to the current note content.',
+          items: {
+            type: 'object',
+            properties: {
+              match: { type: 'string', minLength: 1, description: 'Exact substring to find.' },
+              replace: { type: 'string', description: 'Replacement text. Defaults to an empty string.' },
+              replaceAll: { type: 'boolean', default: false, description: 'Replace every occurrence when true. Otherwise exactly one occurrence is required unless `expectedMatches` is set.' },
+              expectedMatches: { type: 'integer', minimum: 1, description: 'Optional exact match count guard before applying the patch.' }
+            },
+            required: ['match'],
+            additionalProperties: false
+          }
+        }
       },
-      required: ['path', 'content'],
+      required: ['path'],
       additionalProperties: false
     },
     outputSchema: {
@@ -136,37 +153,12 @@ export const baseToolDefinitions = [
       type: 'object',
       properties: {
         path: { type: 'string' },
-        status: { type: 'string', enum: ['written'] }
+        status: { type: 'string', enum: ['written', 'appended', 'patched'] },
+        previousContentLength: { type: 'integer', minimum: 0 },
+        newContentLength: { type: 'integer', minimum: 0 },
+        changeCount: { type: 'integer', minimum: 1 }
       },
-      required: ['path', 'status'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: 'append-to-note',
-    title: 'Append to Note',
-    description: 'Append content to an existing markdown note without replacing the rest of the file. Resolves a unique filename anywhere in the vault.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Existing vault-relative markdown path or unique markdown filename.' },
-        content: { type: 'string', description: 'Markdown content to append.' },
-        separator: { type: 'string', default: '\n\n', description: 'String inserted between existing content and appended content when the note is not empty.' }
-      },
-      required: ['path', 'content'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        path: { type: 'string' },
-        status: { type: 'string', enum: ['appended'] },
-        appendedLength: { type: 'integer', minimum: 0 },
-        newContentLength: { type: 'integer', minimum: 0 }
-      },
-      required: ['path', 'status', 'appendedLength', 'newContentLength'],
+      required: ['path', 'status', 'previousContentLength', 'newContentLength', 'changeCount'],
       additionalProperties: false
     }
   },

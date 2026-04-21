@@ -182,20 +182,131 @@ function joinWithSeparator(existingContent, appendedContent, separator) {
   return `${existingContent}${separator}${appendedContent}`;
 }
 
-export async function appendToNote(vaultPath, notePath, content, options = {}) {
-  const { separator = '\n\n' } = options;
-  const paramValidation = validateRequiredParameters({ path: notePath, content }, ['path', 'content']);
-  assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
+function countOccurrences(content, searchValue) {
+  if (searchValue.length === 0) {
+    return 0;
+  }
 
-  const note = await readResolvedNote(vaultPath, notePath);
-  const nextContent = joinWithSeparator(note.content, content, separator);
-  await writeNote(vaultPath, note.path, nextContent);
+  let count = 0;
+  let fromIndex = 0;
+
+  while (true) {
+    const index = content.indexOf(searchValue, fromIndex);
+    if (index === -1) {
+      return count;
+    }
+    count += 1;
+    fromIndex = index + searchValue.length;
+  }
+}
+
+function applySinglePatch(content, patch, notePath) {
+  const { match, replace = '', replaceAll = false, expectedMatches } = patch;
+
+  if (typeof match !== 'string' || match.length === 0) {
+    throw Errors.invalidParams('Each patch requires a non-empty match string', { path: notePath });
+  }
+
+  const actualMatches = countOccurrences(content, match);
+  if (actualMatches === 0) {
+    throw Errors.invalidParams(`Patch match not found in ${notePath}`, { path: notePath, match });
+  }
+
+  if (typeof expectedMatches === 'number' && actualMatches !== expectedMatches) {
+    throw Errors.invalidParams(`Patch expected ${expectedMatches} matches but found ${actualMatches} in ${notePath}`, {
+      path: notePath,
+      match,
+      expectedMatches,
+      actualMatches
+    });
+  }
+
+  if (!replaceAll && expectedMatches === undefined && actualMatches !== 1) {
+    throw Errors.invalidParams(`Patch match is ambiguous in ${notePath}; found ${actualMatches} matches`, {
+      path: notePath,
+      match,
+      actualMatches
+    });
+  }
+
+  const nextContent = replaceAll
+    ? content.split(match).join(replace)
+    : content.replace(match, replace);
 
   return {
+    content: nextContent,
+    appliedCount: replaceAll ? actualMatches : 1
+  };
+}
+
+export async function updateNote(vaultPath, notePath, options = {}) {
+  const {
+    mode = 'replace',
+    content,
+    separator = '\n\n',
+    patches = []
+  } = options;
+
+  const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
+  assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
+
+  if (!['replace', 'append', 'patch'].includes(mode)) {
+    throw Errors.invalidParams(`Unsupported update mode: ${mode}`, { path: notePath, mode });
+  }
+
+  if (mode === 'replace') {
+    if (typeof content !== 'string') {
+      throw Errors.invalidParams('replace mode requires content', { path: notePath, mode });
+    }
+
+    await writeNote(vaultPath, notePath, content);
+    return {
+      path: notePath,
+      status: 'written',
+      previousContentLength: 0,
+      newContentLength: content.length,
+      changeCount: 1
+    };
+  }
+
+  const note = await readResolvedNote(vaultPath, notePath);
+  const previousContentLength = note.content.length;
+
+  if (mode === 'append') {
+    if (typeof content !== 'string') {
+      throw Errors.invalidParams('append mode requires content', { path: notePath, mode });
+    }
+
+    const nextContent = joinWithSeparator(note.content, content, separator);
+    await writeNote(vaultPath, note.path, nextContent);
+    return {
+      path: note.path,
+      status: 'appended',
+      previousContentLength,
+      newContentLength: nextContent.length,
+      changeCount: 1
+    };
+  }
+
+  if (!Array.isArray(patches) || patches.length === 0) {
+    throw Errors.invalidParams('patch mode requires a non-empty patches array', { path: notePath, mode });
+  }
+
+  let nextContent = note.content;
+  let appliedPatchCount = 0;
+  for (const patch of patches) {
+    const result = applySinglePatch(nextContent, patch, note.path);
+    nextContent = result.content;
+    appliedPatchCount += result.appliedCount;
+  }
+
+  await writeNote(vaultPath, note.path, nextContent);
+  return {
     path: note.path,
-    status: 'appended',
-    appendedLength: content.length,
-    newContentLength: nextContent.length
+    status: 'patched',
+    previousContentLength,
+    newContentLength: nextContent.length,
+    changeCount: appliedPatchCount
   };
 }
 

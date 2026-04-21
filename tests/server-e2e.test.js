@@ -40,8 +40,7 @@ describe('Server E2E Tests', () => {
       expect(server).toBeDefined();
       expect(server._serverInfo.name).toBe('obsidian-mcp-filesystem');
       
-      // We know from the code that 5 tools should be registered
-      // search-vault, list-notes, read-note, write-note, delete-note
+      // We know from the code that the core CRUD/search tools should be registered
     });
   });
 
@@ -73,7 +72,7 @@ describe('Server E2E Tests', () => {
       expect(readFile).toBeDefined();
     });
 
-    it('should handle write-note requests', async () => {
+    it('should handle update-note requests', async () => {
       mkdir.mockResolvedValue();
       writeFile.mockResolvedValue();
 

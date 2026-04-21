@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { appendToNote, searchVault, listNotes, readNote, writeNote, moveNote, deleteNote } from '../src/tools.js';
+import { updateNote, searchVault, listNotes, readNote, writeNote, moveNote, deleteNote } from '../src/tools.js';
 
 // Mock fs and glob
 vi.mock('fs/promises');
@@ -301,21 +301,22 @@ describe('Tools module', () => {
     });
   });
 
-  describe('appendToNote', () => {
+  describe('updateNote', () => {
     it('should append content with the default separator', async () => {
       access.mockResolvedValue();
       readFile.mockResolvedValue('# Daily');
       writeFile.mockResolvedValue();
       mkdir.mockResolvedValue();
 
-      const result = await appendToNote(mockVaultPath, 'daily.md', '- [ ] todo');
+      const result = await updateNote(mockVaultPath, 'daily.md', { mode: 'append', content: '- [ ] todo' });
 
       expect(writeFile).toHaveBeenCalledWith('/test/vault/daily.md', '# Daily\n\n- [ ] todo', 'utf-8');
       expect(result).toEqual({
         path: 'daily.md',
         status: 'appended',
-        appendedLength: 10,
-        newContentLength: 19
+        previousContentLength: 7,
+        newContentLength: 19,
+        changeCount: 1
       });
     });
 
@@ -325,9 +326,40 @@ describe('Tools module', () => {
       writeFile.mockResolvedValue();
       mkdir.mockResolvedValue();
 
-      await appendToNote(mockVaultPath, 'inbox.md', 'hello');
+      await updateNote(mockVaultPath, 'inbox.md', { mode: 'append', content: 'hello' });
 
       expect(writeFile).toHaveBeenCalledWith('/test/vault/inbox.md', 'hello', 'utf-8');
+    });
+
+    it('should patch a single exact match', async () => {
+      access.mockResolvedValue();
+      readFile.mockResolvedValue('before target after');
+      writeFile.mockResolvedValue();
+      mkdir.mockResolvedValue();
+
+      const result = await updateNote(mockVaultPath, 'note.md', {
+        mode: 'patch',
+        patches: [{ match: 'target', replace: 'updated' }]
+      });
+
+      expect(writeFile).toHaveBeenCalledWith('/test/vault/note.md', 'before updated after', 'utf-8');
+      expect(result).toEqual({
+        path: 'note.md',
+        status: 'patched',
+        previousContentLength: 19,
+        newContentLength: 20,
+        changeCount: 1
+      });
+    });
+
+    it('should reject ambiguous patch matches unless replaceAll is enabled', async () => {
+      access.mockResolvedValue();
+      readFile.mockResolvedValue('repeat repeat');
+
+      await expect(updateNote(mockVaultPath, 'note.md', {
+        mode: 'patch',
+        patches: [{ match: 'repeat', replace: 'once' }]
+      })).rejects.toThrow('ambiguous');
     });
   });
 

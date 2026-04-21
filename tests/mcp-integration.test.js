@@ -55,8 +55,8 @@ describe('MCP Server Integration', () => {
             inputSchema: { type: 'object' }
           },
           {
-            name: 'write-note',
-            description: 'Create or replace a markdown note.',
+            name: 'update-note',
+            description: 'Create, replace, append to, or patch part of a markdown note.',
             inputSchema: { type: 'object' }
           },
           {
@@ -76,7 +76,7 @@ describe('MCP Server Integration', () => {
         'search-vault',
         'list-notes',
         'read-note',
-        'write-note',
+        'update-note',
         'delete-note'
       ]);
     });
@@ -106,13 +106,14 @@ describe('MCP Server Integration', () => {
         },
         required: ['path']
       },
-      'write-note': {
+      'update-note': {
         type: 'object',
         properties: {
           path: { type: 'string' },
+          mode: { type: 'string' },
           content: { type: 'string' }
         },
-        required: ['path', 'content']
+        required: ['path']
       },
       'delete-note': {
         type: 'object',
@@ -130,9 +131,8 @@ describe('MCP Server Integration', () => {
       const readSchema = toolSchemas['read-note'];
       expect(readSchema.required).toContain('path');
 
-      const writeSchema = toolSchemas['write-note'];
-      expect(writeSchema.required).toContain('path');
-      expect(writeSchema.required).toContain('content');
+      const updateSchema = toolSchemas['update-note'];
+      expect(updateSchema.required).toContain('path');
     });
 
     it('should have proper type definitions', () => {

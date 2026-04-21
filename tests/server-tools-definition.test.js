@@ -74,10 +74,10 @@ describe('Server Tools Definition', () => {
     expect(toolDef.inputSchema.properties.path).toBeDefined();
   });
 
-  it('should define write-note tool correctly', () => {
+  it('should define update-note tool correctly', () => {
     const toolDef = {
-      name: 'write-note',
-      description: 'Create or replace a markdown note.',
+      name: 'update-note',
+      description: 'Create, replace, append to, or patch part of a markdown note.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -85,19 +85,23 @@ describe('Server Tools Definition', () => {
             type: 'string',
             description: 'Path to the note relative to vault root',
           },
+          mode: {
+            type: 'string',
+            description: 'Update mode',
+          },
           content: {
             type: 'string',
             description: 'Content of the note',
           },
         },
-        required: ['path', 'content'],
+        required: ['path'],
       },
     };
 
-    expect(toolDef.name).toBe('write-note');
+    expect(toolDef.name).toBe('update-note');
     expect(toolDef.inputSchema.required).toContain('path');
-    expect(toolDef.inputSchema.required).toContain('content');
     expect(toolDef.inputSchema.properties.path).toBeDefined();
+    expect(toolDef.inputSchema.properties.mode).toBeDefined();
     expect(toolDef.inputSchema.properties.content).toBeDefined();
   });
 

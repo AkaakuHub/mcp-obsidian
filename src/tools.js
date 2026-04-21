@@ -4,8 +4,8 @@ export {
   listNotes,
   readResolvedNote,
   readNote,
+  updateNote,
   writeNote,
-  appendToNote,
   moveNote,
   deleteNote
 } from './note-io-tools.js';

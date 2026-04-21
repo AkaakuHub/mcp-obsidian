@@ -8,12 +8,12 @@ vi.mock('../src/tools.js', () => ({
   listNotes: vi.fn(),
   readNote: vi.fn(),
   readResolvedNote: vi.fn(),
-  writeNote: vi.fn(),
+  updateNote: vi.fn(),
   moveNote: vi.fn(),
   deleteNote: vi.fn()
 }));
 
-import { searchVault, listNotes, readNote, writeNote, moveNote, deleteNote } from '../src/tools.js';
+import { searchVault, listNotes, readNote, updateNote, moveNote, deleteNote } from '../src/tools.js';
 
 describe('Server Handlers', () => {
   let server;
@@ -73,12 +73,12 @@ describe('Server Handlers', () => {
       expect(readNote).toHaveBeenCalledWith(mockVaultPath, 'test.md');
     });
 
-    it('should call writeNote when write-note tool is used', async () => {
-      writeNote.mockResolvedValue('test.md');
+    it('should call updateNote when update-note tool is used', async () => {
+      updateNote.mockResolvedValue({ path: 'test.md', status: 'written', previousContentLength: 0, newContentLength: 9, changeCount: 1 });
       
-      const result = await writeNote(mockVaultPath, 'test.md', '# Content');
-      expect(result).toEqual('test.md');
-      expect(writeNote).toHaveBeenCalledWith(mockVaultPath, 'test.md', '# Content');
+      const result = await updateNote(mockVaultPath, 'test.md', { mode: 'replace', content: '# Content' });
+      expect(result.status).toEqual('written');
+      expect(updateNote).toHaveBeenCalledWith(mockVaultPath, 'test.md', { mode: 'replace', content: '# Content' });
     });
 
     it('should call deleteNote when delete-note tool is used', async () => {

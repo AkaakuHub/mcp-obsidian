@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { appendToNote, deleteNote, listNotes, moveNote, readResolvedNote, searchByFilename, searchVault, writeNote } from '../tools.js';
+import { deleteNote, listNotes, moveNote, readResolvedNote, searchByFilename, searchVault, updateNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -38,23 +38,17 @@ export function createBaseHandlers(vaultPath) {
         createMetadata(startTime, { tool: toolName, contentLength: note.content.length })
       );
     },
-    'write-note': async (args, startTime, toolName) => {
-      await writeNote(vaultPath, args.path, args.content);
-      return structuredResponse(
-        {
-          path: args.path,
-          status: 'written'
-        },
-        `Note written successfully to ${args.path}`,
-        createMetadata(startTime, { tool: toolName, contentLength: args.content.length })
-      );
-    },
-    'append-to-note': async (args, startTime, toolName) => {
-      const result = await appendToNote(vaultPath, args.path, args.content, { separator: args.separator });
+    'update-note': async (args, startTime, toolName) => {
+      const result = await updateNote(vaultPath, args.path, {
+        mode: args.mode,
+        content: args.content,
+        separator: args.separator,
+        patches: args.patches
+      });
       return structuredResponse(
         result,
-        `Appended content to ${result.path}`,
-        createMetadata(startTime, { tool: toolName, contentLength: args.content.length })
+        `Note ${result.status} successfully: ${result.path}`,
+        createMetadata(startTime, { tool: toolName, contentLength: result.newContentLength })
       );
     },
     'move-note': async (args, startTime, toolName) => {

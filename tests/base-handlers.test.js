@@ -6,14 +6,13 @@ vi.mock('../src/tools.js', () => ({
   readResolvedNote: vi.fn(),
   searchByFilename: vi.fn(),
   searchVault: vi.fn(),
-  writeNote: vi.fn(),
-  appendToNote: vi.fn(),
+  updateNote: vi.fn(),
   moveNote: vi.fn(),
   deleteNote: vi.fn()
 }));
 
 import { createBaseHandlers } from '../src/tool-handler-groups/base-handlers.js';
-import { appendToNote, deleteNote, moveNote, readResolvedNote, searchVault, writeNote } from '../src/tools.js';
+import { deleteNote, moveNote, readResolvedNote, searchVault, updateNote } from '../src/tools.js';
 
 describe('base handlers', () => {
   const vaultPath = '/test/vault';
@@ -35,15 +34,24 @@ describe('base handlers', () => {
     expect(response.content[0].text).toContain('Read note resolved/note.md');
   });
 
-  it('returns structured content for write-note', async () => {
-    writeNote.mockResolvedValue('note.md');
+  it('returns structured content for update-note', async () => {
+    updateNote.mockResolvedValue({
+      path: 'note.md',
+      status: 'patched',
+      previousContentLength: 10,
+      newContentLength: 12,
+      changeCount: 1
+    });
     const handlers = createBaseHandlers(vaultPath);
 
-    const response = await handlers['write-note']({ path: 'note.md', content: '# Note' }, Date.now(), 'write-note');
+    const response = await handlers['update-note']({ path: 'note.md', mode: 'patch', patches: [{ match: 'a', replace: 'b' }] }, Date.now(), 'update-note');
 
     expect(response.structuredContent).toEqual({
       path: 'note.md',
-      status: 'written'
+      status: 'patched',
+      previousContentLength: 10,
+      newContentLength: 12,
+      changeCount: 1
     });
   });
 
@@ -69,20 +77,6 @@ describe('base handlers', () => {
       fromPath: 'inbox/note.md',
       path: 'areas/note.md',
       status: 'moved'
-    });
-  });
-
-  it('returns structured content for append-to-note', async () => {
-    appendToNote.mockResolvedValue({ path: 'note.md', status: 'appended', appendedLength: 6, newContentLength: 22 });
-    const handlers = createBaseHandlers(vaultPath);
-
-    const response = await handlers['append-to-note']({ path: 'note.md', content: 'Append' }, Date.now(), 'append-to-note');
-
-    expect(response.structuredContent).toEqual({
-      path: 'note.md',
-      status: 'appended',
-      appendedLength: 6,
-      newContentLength: 22
     });
   });
 

@@ -184,16 +184,12 @@ Read the complete content of a specific note.
 - Path validation ensures security
 - File size limits prevent memory issues
 
-### write-note
-Create or update a note with new content.
-- Automatic directory creation
-- Content size limits aligned with the server file-size cap
-
-### append-to-note
-Append content to an existing note without replacing the rest of the file.
-- Accepts an exact path or a unique filename resolved anywhere in the vault
-- Uses a configurable separator between existing and appended content
-- Useful for inbox, journal, and task capture flows
+### update-note
+Create, replace, append to, or patch part of a note.
+- `mode: "replace"` writes the full note and creates parent directories automatically
+- `mode: "append"` adds text to an existing note with a configurable separator
+- `mode: "patch"` applies exact substring replacements in order
+- Patch mode rejects missing or ambiguous matches unless you opt into `replaceAll` or provide `expectedMatches`
 
 ### move-note
 Move or rename a note to a new vault-relative path.

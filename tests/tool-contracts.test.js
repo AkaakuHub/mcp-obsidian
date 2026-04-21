@@ -6,8 +6,7 @@ vi.mock('../src/tools.js', () => ({
   searchByFilename: vi.fn(),
   listNotes: vi.fn(),
   readResolvedNote: vi.fn(),
-  writeNote: vi.fn(),
-  appendToNote: vi.fn(),
+  updateNote: vi.fn(),
   moveNote: vi.fn(),
   deleteNote: vi.fn()
 }));
@@ -69,15 +68,12 @@ const outputSamples = {
     path: 'resolved/note.md',
     content: '# Note'
   },
-  'write-note': {
+  'update-note': {
     path: 'note.md',
-    status: 'written'
-  },
-  'append-to-note': {
-    path: 'note.md',
-    status: 'appended',
-    appendedLength: 8,
-    newContentLength: 42
+    status: 'patched',
+    previousContentLength: 34,
+    newContentLength: 42,
+    changeCount: 2
   },
   'move-note': {
     fromPath: 'inbox/note.md',
@@ -154,8 +150,7 @@ const toolArgs = {
   'search-by-filename': { query: 'note.md' },
   'list-notes': {},
   'read-note': { path: 'note.md' },
-  'write-note': { path: 'note.md', content: '# Note' },
-  'append-to-note': { path: 'note.md', content: '\n- [ ] todo' },
+  'update-note': { path: 'note.md', mode: 'patch', patches: [{ match: 'before', replace: 'after' }] },
   'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   'delete-note': { path: 'note.md' },
   'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
@@ -175,8 +170,7 @@ describe('tool contracts', () => {
     tools.searchByFilename.mockResolvedValue(outputSamples['search-by-filename']);
     tools.listNotes.mockResolvedValue(outputSamples['list-notes']);
     tools.readResolvedNote.mockResolvedValue(outputSamples['read-note']);
-    tools.writeNote.mockResolvedValue('note.md');
-    tools.appendToNote.mockResolvedValue(outputSamples['append-to-note']);
+    tools.updateNote.mockResolvedValue(outputSamples['update-note']);
     tools.moveNote.mockResolvedValue(outputSamples['move-note']);
     tools.deleteNote.mockResolvedValue('note.md');
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);

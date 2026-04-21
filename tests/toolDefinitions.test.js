@@ -8,8 +8,7 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('search-by-filename');
     expect(toolNames).toContain('list-notes');
     expect(toolNames).toContain('read-note');
-    expect(toolNames).toContain('write-note');
-    expect(toolNames).toContain('append-to-note');
+    expect(toolNames).toContain('update-note');
     expect(toolNames).toContain('move-note');
     expect(toolNames).toContain('delete-note');
     expect(toolNames).toContain('write-frontmatter');
@@ -34,11 +33,10 @@ describe('Tool Definitions', () => {
     const searchTool = toolDefinitions.find(t => t.name === 'search-vault');
     expect(searchTool.inputSchema.required).toEqual(['query']);
 
-    const writeTool = toolDefinitions.find(t => t.name === 'write-note');
-    expect(writeTool.inputSchema.required).toEqual(['path', 'content']);
-
-    const appendTool = toolDefinitions.find(t => t.name === 'append-to-note');
-    expect(appendTool.inputSchema.required).toEqual(['path', 'content']);
+    const updateTool = toolDefinitions.find(t => t.name === 'update-note');
+    expect(updateTool.inputSchema.required).toEqual(['path']);
+    expect(updateTool.inputSchema.properties.mode).toBeDefined();
+    expect(updateTool.inputSchema.properties.patches).toBeDefined();
 
     const moveTool = toolDefinitions.find(t => t.name === 'move-note');
     expect(moveTool.inputSchema.required).toEqual(['sourcePath', 'destinationPath']);
