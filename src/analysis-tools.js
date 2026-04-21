@@ -9,3 +9,13 @@ export {
 export {
   moveMany
 } from './reorganization-tools.js';
+export {
+  listTags,
+  writeTags
+} from './tag-tools.js';
+export {
+  bulkDeleteNote
+} from './bulk-delete-tools.js';
+export {
+  auditAssets
+} from './asset-audit-tools.js';

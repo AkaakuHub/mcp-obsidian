@@ -1,6 +1,4 @@
-import { access, mkdir, readFile, rename, rm, writeFile } from 'fs/promises';
-import { constants } from 'fs';
-import { glob } from 'glob';
+import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises';
 import path from 'path';
 import {
   buildDestinationAssetPath,
@@ -9,92 +7,14 @@ import {
   rewriteAssetTargets,
   serializeAssetTarget
 } from './asset-links.js';
+import {
+  collectReferenceOwners,
+  normalizePath,
+  pathExists,
+  resolveAssetCandidate
+} from './asset-references.js';
 import { Errors } from './errors.js';
 import { sanitizeContent as sanitizeContentPure } from './validation.js';
-
-function normalizePath(value) {
-  return value.replace(/\\/g, '/');
-}
-
-async function pathExists(targetPath) {
-  try {
-    await access(targetPath, constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function resolveAssetCandidate(vaultPath, noteFullPath, link) {
-  const sourceDirectory = path.dirname(noteFullPath);
-  const candidates = new Map();
-  const decodedTarget = link.decodedTargetPath;
-  const hasPathSeparator = /[\\/]/.test(decodedTarget);
-
-  if (hasPathSeparator) {
-    const relativeCandidate = path.resolve(sourceDirectory, decodedTarget);
-    if (await pathExists(relativeCandidate)) {
-      candidates.set(relativeCandidate, {
-        fullPath: relativeCandidate,
-        style: 'relative'
-      });
-    }
-
-    const vaultCandidate = path.resolve(vaultPath, decodedTarget);
-    if (await pathExists(vaultCandidate)) {
-      candidates.set(vaultCandidate, {
-        fullPath: vaultCandidate,
-        style: 'vault'
-      });
-    }
-  } else {
-    const basenameMatches = await glob(path.join(vaultPath, '**', decodedTarget));
-    for (const match of basenameMatches) {
-      candidates.set(match, {
-        fullPath: match,
-        style: 'basename'
-      });
-    }
-  }
-
-  if (candidates.size !== 1) {
-    return null;
-  }
-
-  return [...candidates.values()][0];
-}
-
-async function collectReferenceOwners(vaultPath, trackedAssetPaths) {
-  if (trackedAssetPaths.size === 0) {
-    return new Map();
-  }
-
-  const owners = new Map();
-  const notePaths = await glob(path.join(vaultPath, '**/*.md'));
-
-  for (const noteFullPath of notePaths) {
-    let content;
-    try {
-      content = await readFile(noteFullPath, 'utf-8');
-    } catch {
-      continue;
-    }
-
-    const links = extractInternalAssetLinks(content);
-    for (const link of links) {
-      const resolved = await resolveAssetCandidate(vaultPath, noteFullPath, link);
-      if (!resolved || !trackedAssetPaths.has(resolved.fullPath)) {
-        continue;
-      }
-
-      const currentOwners = owners.get(resolved.fullPath) ?? new Set();
-      currentOwners.add(noteFullPath);
-      owners.set(resolved.fullPath, currentOwners);
-    }
-  }
-
-  return owners;
-}
 
 function buildRewriteMap(vaultPath, resolvedLinks, refsToMove) {
   const replacements = new Map();

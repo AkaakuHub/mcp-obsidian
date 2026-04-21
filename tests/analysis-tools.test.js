@@ -3,9 +3,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 vi.mock('fs/promises');
 vi.mock('glob');
 
-import { readFile, stat, writeFile } from 'fs/promises';
+import { access, readFile, rm, stat, writeFile } from 'fs/promises';
 import { glob } from 'glob';
-import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, writeFrontmatter } from '../src/analysis-tools.js';
+import { analyzeLinks, auditAssets, bulkDeleteNote, bulkUpdateFrontmatter, extractTasks, listTags, writeFrontmatter, writeTags } from '../src/analysis-tools.js';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('analysis tools', () => {
@@ -14,6 +14,7 @@ describe('analysis tools', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSnapshotCache();
+    access.mockResolvedValue();
     stat.mockResolvedValue({
       size: 1024,
       birthtime: new Date('2026-04-01T00:00:00Z'),
@@ -142,5 +143,149 @@ describe('analysis tools', () => {
     expect(tasks.total).toBe(1);
     expect(links.orphans).toEqual([]);
     expect(links.notes.find((note) => note.path === 'b.md').inboundCount).toBe(1);
+  });
+
+  it('should list aggregated tags and note-level tag details', async () => {
+    glob.mockResolvedValue([
+      '/test/vault/a.md',
+      '/test/vault/b.md'
+    ]);
+    readFile.mockImplementation(async (file) => {
+      if (file.endsWith('/a.md')) {
+        return '---\ntags: [project]\n---\n# A\n#urgent';
+      }
+      return '# B\n#project\n#home';
+    });
+
+    const aggregate = await listTags(vaultPath, { includeNotes: true });
+    const note = await listTags(vaultPath, { notePath: 'a.md' });
+
+    expect(aggregate.tags).toEqual([
+      { tag: 'project', count: 2, notes: ['a.md', 'b.md'] },
+      { tag: 'home', count: 1, notes: ['b.md'] },
+      { tag: 'urgent', count: 1, notes: ['a.md'] }
+    ]);
+    expect(note).toEqual({
+      path: 'a.md',
+      frontmatterTags: ['project'],
+      inlineTags: ['urgent'],
+      tags: ['project', 'urgent'],
+      frontmatterError: null
+    });
+  });
+
+  it('should dry-run and apply frontmatter tag updates', async () => {
+    readFile.mockResolvedValue('---\ntags: [project]\n---\nBody with #inline');
+    writeFile.mockResolvedValue();
+
+    const dryRun = await writeTags(vaultPath, 'task.md', ['#urgent', 'project'], { mode: 'add', dryRun: true });
+    const applied = await writeTags(vaultPath, 'task.md', ['urgent'], { mode: 'add', dryRun: false });
+
+    expect(dryRun.afterFrontmatterTags).toEqual(['project', 'urgent']);
+    expect(dryRun.inlineTagsDetected).toEqual(['inline']);
+    expect(applied.written).toBe(true);
+    expect(writeFile).toHaveBeenCalledTimes(1);
+  });
+
+  it('should audit assets and report unreferenced, missing, shared, and owned assets', async () => {
+    glob.mockImplementation(async (pattern, options) => {
+      if (pattern === '/test/vault/**/*' && options?.nodir === true) {
+        return [
+          '/test/vault/assets/a.png',
+          '/test/vault/assets/shared.png',
+          '/test/vault/assets/unused.png'
+        ];
+      }
+
+      if (pattern === '/test/vault/**/*.md') {
+        return [
+          '/test/vault/a.md',
+          '/test/vault/b.md'
+        ];
+      }
+
+      if (pattern === '/test/vault/**/a.png') {
+        return ['/test/vault/assets/a.png'];
+      }
+
+      if (pattern === '/test/vault/**/shared.png') {
+        return ['/test/vault/assets/shared.png'];
+      }
+
+      if (pattern === '/test/vault/**/missing.png') {
+        return [];
+      }
+
+      return [];
+    });
+    readFile.mockImplementation(async (file) => {
+      if (file.endsWith('/a.md')) {
+        return '![[assets/a.png]]\n![[assets/shared.png]]\n![[assets/missing.png]]';
+      }
+      return '![[assets/shared.png]]';
+    });
+    access.mockImplementation(async (targetPath) => {
+      if (targetPath === '/test/vault/assets/missing.png') {
+        throw new Error('ENOENT');
+      }
+    });
+
+    const result = await auditAssets(vaultPath, {});
+
+    expect(result.unreferencedAssets).toEqual(['assets/unused.png']);
+    expect(result.missingAssets).toEqual([{ notePath: 'a.md', target: 'assets/missing.png', format: 'wikilink' }]);
+    expect(result.sharedAssets).toEqual([{ path: 'assets/shared.png', notePaths: ['a.md', 'b.md'] }]);
+    expect(result.ownedAssetsByNote).toEqual([{ notePath: 'a.md', assets: ['assets/a.png'] }]);
+  });
+
+  it('should dry-run and apply bulk note deletion with owned asset cleanup', async () => {
+    glob.mockImplementation(async (pattern) => {
+      if (pattern === '/test/vault/**/*.md') {
+        return [
+          '/test/vault/a.md',
+          '/test/vault/b.md'
+        ];
+      }
+
+      if (pattern === '/test/vault/**/a.png') {
+        return ['/test/vault/assets/a.png'];
+      }
+
+      if (pattern === '/test/vault/**/shared.png') {
+        return ['/test/vault/assets/shared.png'];
+      }
+
+      if (pattern === '/test/vault/**/b.png') {
+        return ['/test/vault/assets/b.png'];
+      }
+
+      return [];
+    });
+    readFile.mockImplementation(async (file) => {
+      if (file.endsWith('/a.md')) {
+        return '![[assets/a.png]]\n![[assets/shared.png]]';
+      }
+      return '![[assets/shared.png]]\n![[assets/b.png]]';
+    });
+    rm.mockResolvedValue();
+
+    const dryRun = await bulkDeleteNote(vaultPath, {
+      paths: ['a.md', 'b.md'],
+      dryRun: true,
+      deleteOwnedAssets: true
+    });
+    const applied = await bulkDeleteNote(vaultPath, {
+      paths: ['a.md', 'b.md'],
+      dryRun: false,
+      deleteOwnedAssets: true
+    });
+
+    expect(dryRun.results).toEqual([
+      { path: 'a.md', status: 'planned', assetPaths: ['assets/a.png', 'assets/shared.png'], errors: [] },
+      { path: 'b.md', status: 'planned', assetPaths: ['assets/b.png', 'assets/shared.png'], errors: [] }
+    ]);
+    expect(applied.deletedCount).toBe(2);
+    expect(applied.deletedAssetCount).toBe(3);
+    expect(rm).toHaveBeenCalledTimes(3);
   });
 });

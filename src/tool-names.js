@@ -10,5 +10,9 @@ export const TOOL_NAMES = {
   BULK_WRITE_FRONTMATTER: 'bulk-write-frontmatter',
   EXTRACT_TASKS: 'extract-tasks',
   ANALYZE_LINKS: 'analyze-links',
-  BULK_MOVE_NOTE: 'bulk-move-note'
+  BULK_MOVE_NOTE: 'bulk-move-note',
+  LIST_TAGS: 'list-tags',
+  WRITE_TAGS: 'write-tags',
+  BULK_DELETE_NOTE: 'bulk-delete-note',
+  AUDIT_ASSETS: 'audit-assets'
 };

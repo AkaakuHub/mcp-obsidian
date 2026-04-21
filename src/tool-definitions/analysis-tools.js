@@ -188,5 +188,167 @@ export const analysisToolDefinitions = [
       required: ['dryRun', 'applied', 'validationFailed', 'rolledBack', 'moveCount', 'movedCount', 'errors', 'rollbackErrors', 'results'],
       additionalProperties: false
     }
+  },
+  {
+    name: TOOL_NAMES.LIST_TAGS,
+    title: 'List Tags',
+    description: 'List tags for one note or aggregate tag usage across the vault or a directory. Note-level output separates `frontmatter.tags` from inline `#tags` instead of merging their sources silently.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        notePath: { type: 'string', pattern: '\\.md$', description: 'Optional specific note path. When provided, returns tags for that note only.' },
+        directory: { type: 'string', description: 'Optional vault-relative directory to scan for aggregated tag usage.' },
+        includeNotes: { type: 'boolean', default: false, description: 'When true, include note paths for each aggregated tag.' }
+      },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      anyOf: [
+        {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            frontmatterTags: { type: 'array', items: { type: 'string' } },
+            inlineTags: { type: 'array', items: { type: 'string' } },
+            tags: { type: 'array', items: { type: 'string' } },
+            frontmatterError: { type: ['string', 'null'] }
+          },
+          required: ['path', 'frontmatterTags', 'inlineTags', 'tags', 'frontmatterError'],
+          additionalProperties: false
+        },
+        {
+          type: 'object',
+          properties: {
+            tags: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  tag: { type: 'string' },
+                  count: { type: 'integer', minimum: 0 },
+                  notes: { type: 'array', items: { type: 'string' } }
+                },
+                required: ['tag', 'count', 'notes'],
+                additionalProperties: false
+              }
+            },
+            count: { type: 'integer', minimum: 0 },
+            noteCount: { type: 'integer', minimum: 0 }
+          },
+          required: ['tags', 'count', 'noteCount'],
+          additionalProperties: false
+        }
+      ]
+    }
+  },
+  {
+    name: TOOL_NAMES.WRITE_TAGS,
+    title: 'Write Tags',
+    description: 'Preview or apply tag updates for one note by editing only `frontmatter.tags`. Inline `#tags` in the note body are never rewritten and are reported separately for awareness.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        path: { type: 'string', pattern: '\\.md$', description: 'Vault-relative markdown path to update.' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tag values to add, remove, or replace in `frontmatter.tags`. Leading `#` is ignored.' },
+        mode: { type: 'string', enum: ['replace', 'add', 'remove'], default: 'replace', description: 'Tag update mode for `frontmatter.tags` only. This does not modify inline `#tags`.' },
+        dryRun: { type: 'boolean', default: true, description: 'When true, return the planned changes without writing.' }
+      },
+      required: ['path', 'tags'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        dryRun: { type: 'boolean' },
+        written: { type: 'boolean' },
+        mode: { type: 'string', enum: ['replace', 'add', 'remove'] },
+        beforeFrontmatterTags: { type: 'array', items: { type: 'string' } },
+        afterFrontmatterTags: { type: 'array', items: { type: 'string' } },
+        inlineTagsDetected: { type: 'array', items: { type: 'string' } },
+        addedTags: { type: 'array', items: { type: 'string' } },
+        removedTags: { type: 'array', items: { type: 'string' } },
+        changes: { type: 'array' }
+      },
+      required: ['path', 'dryRun', 'written', 'mode', 'beforeFrontmatterTags', 'afterFrontmatterTags', 'inlineTagsDetected', 'addedTags', 'removedTags', 'changes'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: TOOL_NAMES.BULK_DELETE_NOTE,
+    title: 'Bulk Delete Note',
+    description: 'Preview or apply deletion of many notes. Optional asset cleanup deletes only assets referenced exclusively by the targeted note set; shared assets are left in place.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        paths: { type: 'array', items: { type: 'string', pattern: '\\.md$' }, description: 'Explicit note paths to delete. Takes priority over directory scanning.' },
+        directory: { type: 'string', description: 'Optional vault-relative directory to delete from when `paths` is omitted.' },
+        dryRun: { type: 'boolean', default: true, description: 'When true, validate and preview without deleting.' },
+        deleteOwnedAssets: { type: 'boolean', default: false, description: 'When true, also delete assets whose known note references all come from the targeted note set. Shared assets are not deleted.' }
+      },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        dryRun: { type: 'boolean' },
+        applied: { type: 'boolean' },
+        validationFailed: { type: 'boolean' },
+        targetCount: { type: 'integer', minimum: 0 },
+        deletedCount: { type: 'integer', minimum: 0 },
+        deletedAssetCount: { type: 'integer', minimum: 0 },
+        errors: { type: 'array' },
+        results: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string' },
+              status: { type: 'string', enum: ['planned', 'deleted', 'failed'] },
+              assetPaths: { type: 'array', items: { type: 'string' } },
+              errors: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['path', 'status', 'assetPaths', 'errors'],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ['dryRun', 'applied', 'validationFailed', 'targetCount', 'deletedCount', 'deletedAssetCount', 'errors', 'results'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: TOOL_NAMES.AUDIT_ASSETS,
+    title: 'Audit Assets',
+    description: 'Audit vault assets for unreferenced files, missing references, shared assets, and note-owned assets.',
+    inputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        directory: { type: 'string', description: 'Optional vault-relative directory to audit.' }
+      },
+      additionalProperties: false
+    },
+    outputSchema: {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        assetCount: { type: 'integer', minimum: 0 },
+        referencedAssetCount: { type: 'integer', minimum: 0 },
+        unreferencedAssets: { type: 'array', items: { type: 'string' } },
+        missingAssets: { type: 'array' },
+        sharedAssets: { type: 'array' },
+        ownedAssetsByNote: { type: 'array' },
+        noteCount: { type: 'integer', minimum: 0 }
+      },
+      required: ['assetCount', 'referencedAssetCount', 'unreferencedAssets', 'missingAssets', 'sharedAssets', 'ownedAssetsByNote', 'noteCount'],
+      additionalProperties: false
+    }
   }
 ];
