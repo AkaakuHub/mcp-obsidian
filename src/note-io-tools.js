@@ -21,6 +21,7 @@ import {
   planLinkFollowupForMove
 } from './link-followup.js';
 import {
+  normalizeMarkdownNotePath,
   validatePathWithinBase,
   validateMarkdownExtension,
   validateRequiredParameters,
@@ -71,7 +72,8 @@ export async function listNotes(vaultPath, directory, limit = 100, offset = 0, i
 }
 
 async function resolveNotePath(vaultPath, notePath) {
-  const pathValidation = validatePathWithinBase(vaultPath, notePath);
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
+  const pathValidation = validatePathWithinBase(vaultPath, normalizedNotePath);
   assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
 
   const fullPath = pathValidation.resolvedPath;
@@ -83,7 +85,7 @@ async function resolveNotePath(vaultPath, notePath) {
     // Fallback: search by filename
   }
 
-  const basename = path.basename(notePath);
+  const basename = path.basename(normalizedNotePath);
   const searchPattern = path.join(vaultPath, '**', basename);
   const matches = await glob(searchPattern);
 
@@ -107,13 +109,14 @@ function toVaultRelativePath(vaultPath, fullPath) {
 }
 
 export async function readResolvedNote(vaultPath, notePath) {
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
   const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 
-  const extensionValidation = validateMarkdownExtension(notePath);
+  const extensionValidation = validateMarkdownExtension(normalizedNotePath);
   assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: notePath }));
 
-  const fullPath = await resolveNotePath(vaultPath, notePath);
+  const fullPath = await resolveNotePath(vaultPath, normalizedNotePath);
 
   try {
     const stats = await stat(fullPath);
@@ -148,14 +151,15 @@ export async function readNote(vaultPath, notePath) {
 }
 
 export async function writeNote(vaultPath, notePath, content) {
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
   const paramValidation = validateRequiredParameters({ path: notePath, content }, ['path', 'content']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 
-  const extensionValidation = validateMarkdownExtension(notePath);
+  const extensionValidation = validateMarkdownExtension(normalizedNotePath);
   assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: notePath }));
 
-  const pathValidation = validatePathWithinBase(vaultPath, notePath);
-  assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
+  const pathValidation = validatePathWithinBase(vaultPath, normalizedNotePath);
+  assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: normalizedNotePath }));
 
   const fullPath = pathValidation.resolvedPath;
   const dir = path.dirname(fullPath);
@@ -167,7 +171,7 @@ export async function writeNote(vaultPath, notePath, content) {
     await mkdir(dir, { recursive: true });
     await writeFile(fullPath, sanitizedContent, 'utf-8');
     invalidateSnapshotsForVault(vaultPath);
-    return notePath;
+    return normalizedNotePath;
   } catch (error) {
     if (error.code === 'EACCES' || error.code === 'EPERM') {
       throw Errors.accessDenied(`Permission denied: ${notePath}`, { path: notePath });
@@ -246,6 +250,7 @@ function applySinglePatch(content, patch, notePath) {
 }
 
 export async function updateNote(vaultPath, notePath, options = {}) {
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
   const {
     mode = 'replace',
     content,
@@ -265,9 +270,9 @@ export async function updateNote(vaultPath, notePath, options = {}) {
       throw Errors.invalidParams('replace mode requires content', { path: notePath, mode });
     }
 
-    await writeNote(vaultPath, notePath, content);
+    const writtenPath = await writeNote(vaultPath, normalizedNotePath, content);
     return {
-      path: notePath,
+      path: writtenPath,
       status: 'written',
       previousContentLength: 0,
       newContentLength: content.length,
@@ -275,7 +280,7 @@ export async function updateNote(vaultPath, notePath, options = {}) {
     };
   }
 
-  const note = await readResolvedNote(vaultPath, notePath);
+  const note = await readResolvedNote(vaultPath, normalizedNotePath);
   const previousContentLength = note.content.length;
 
   if (mode === 'append') {
@@ -317,46 +322,50 @@ export async function updateNote(vaultPath, notePath, options = {}) {
 }
 
 export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite = false) {
+  const normalizedSourcePath = normalizeMarkdownNotePath(sourcePath);
+  const normalizedDestinationPath = normalizeMarkdownNotePath(destinationPath);
   const paramValidation = validateRequiredParameters(
     { sourcePath, destinationPath },
     ['sourcePath', 'destinationPath']
   );
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 
-  const sourceExtensionValidation = validateMarkdownExtension(sourcePath);
+  const sourceExtensionValidation = validateMarkdownExtension(normalizedSourcePath);
   assertValid(sourceExtensionValidation, (msg) => Errors.invalidParams(msg, { path: sourcePath }));
 
-  const destinationExtensionValidation = validateMarkdownExtension(destinationPath);
+  const destinationExtensionValidation = validateMarkdownExtension(normalizedDestinationPath);
   assertValid(destinationExtensionValidation, (msg) => Errors.invalidParams(msg, { path: destinationPath }));
 
-  const fullSourcePath = await resolveNotePath(vaultPath, sourcePath);
-  const destinationValidation = validatePathWithinBase(vaultPath, destinationPath);
+  const fullSourcePath = await resolveNotePath(vaultPath, normalizedSourcePath);
+  const destinationValidation = validatePathWithinBase(vaultPath, normalizedDestinationPath);
   assertValid(destinationValidation, (msg) => Errors.accessDenied(msg, { path: destinationPath }));
 
   const fullDestinationPath = destinationValidation.resolvedPath;
   const resolvedSourcePath = toVaultRelativePath(vaultPath, fullSourcePath);
 
-  if (resolvedSourcePath === destinationPath) {
+  if (resolvedSourcePath === normalizedDestinationPath) {
     throw Errors.invalidParams('sourcePath and destinationPath must differ', {
       sourcePath: resolvedSourcePath,
-      destinationPath
+      destinationPath: normalizedDestinationPath
     });
   }
 
   const assetPlan = await planAssetFollowupForMove(vaultPath, fullSourcePath, fullDestinationPath);
-  const linkPlan = await planLinkFollowupForMove(vaultPath, resolvedSourcePath, destinationPath);
+  const linkPlan = await planLinkFollowupForMove(vaultPath, resolvedSourcePath, normalizedDestinationPath);
   let overwriteDestinationAssetPlan = null;
+  let overwriteBackupPath = null;
+  let overwriteBackupCleanedUp = false;
 
   try {
     await access(fullDestinationPath, constants.F_OK);
     if (!overwrite) {
       throw Errors.invalidParams(`Destination already exists: ${destinationPath}`, {
-        path: destinationPath
+        path: normalizedDestinationPath
       });
     }
     overwriteDestinationAssetPlan = await planAssetFollowupForDelete(vaultPath, fullDestinationPath);
-    await unlink(fullDestinationPath);
-    await applyAssetFollowupForDelete(overwriteDestinationAssetPlan);
+    overwriteBackupPath = `${fullDestinationPath}.mcp-overwrite-backup-${Date.now()}`;
+    await rename(fullDestinationPath, overwriteBackupPath);
   } catch (error) {
     if (error instanceof MCPError) {
       throw error;
@@ -364,7 +373,7 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
     if (error.code !== 'ENOENT') {
       throw Errors.internalError(`Failed to prepare destination: ${error.message}`, {
         sourcePath: resolvedSourcePath,
-        destinationPath
+        destinationPath: normalizedDestinationPath
       });
     }
   }
@@ -377,10 +386,15 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
     noteMoved = true;
     await applyAssetFollowupForMove(vaultPath, assetPlan, fullDestinationPath, overwrite);
     await applyLinkFollowupPlan(vaultPath, linkPlan);
+    if (overwriteBackupPath) {
+      await applyAssetFollowupForDelete(overwriteDestinationAssetPlan);
+      await unlink(overwriteBackupPath);
+      overwriteBackupCleanedUp = true;
+    }
     invalidateSnapshotsForVault(vaultPath);
     return {
       fromPath: resolvedSourcePath,
-      path: destinationPath,
+      path: normalizedDestinationPath,
       status: 'moved'
     };
   } catch (error) {
@@ -402,21 +416,30 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
       }
     }
 
+    if (overwriteBackupPath && !overwriteBackupCleanedUp) {
+      try {
+        await rename(overwriteBackupPath, fullDestinationPath);
+      } catch {
+        // Best-effort restore.
+      }
+    }
+
     throw Errors.internalError(`Failed to move note: ${error.message}`, {
       sourcePath: resolvedSourcePath,
-      destinationPath
+      destinationPath: normalizedDestinationPath
     });
   }
 }
 
 async function deleteNoteWithFollowup(vaultPath, notePath) {
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
   const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 
-  const extensionValidation = validateMarkdownExtension(notePath);
+  const extensionValidation = validateMarkdownExtension(normalizedNotePath);
   assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: notePath }));
 
-  const pathValidation = validatePathWithinBase(vaultPath, notePath);
+  const pathValidation = validatePathWithinBase(vaultPath, normalizedNotePath);
   assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
 
   const fullPath = pathValidation.resolvedPath;

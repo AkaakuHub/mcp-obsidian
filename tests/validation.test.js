@@ -81,7 +81,6 @@ describe('Functional Validation Utilities', () => {
       const invalidFiles = [
         'note.txt',
         'note.doc',
-        'note',
         'note.md.txt'
       ];
 
@@ -90,6 +89,12 @@ describe('Functional Validation Utilities', () => {
         expect(result.valid).toBe(false);
         expect(result.error).toMatch(/markdown/i);
       });
+    });
+
+    it('should accept note paths without the .md extension', () => {
+      const result = validateMarkdownExtension('note');
+
+      expect(result.valid).toBe(true);
     });
 
     it('should handle empty input', () => {

@@ -98,12 +98,12 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.READ_NOTE,
     title: 'Read Note',
-    description: 'Read the full content of one markdown note. Accepts an exact path or a unique filename resolved anywhere in the vault.',
+    description: 'Read the full content of one markdown note. Accepts an exact vault-relative path or a unique filename resolved anywhere in the vault. The `.md` extension may be omitted when the note reference is unique.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path or unique markdown filename.' }
+        path: { type: 'string', minLength: 1, description: 'Vault-relative note path or unique filename. The `.md` extension may be omitted.' }
       },
       required: ['path'],
       additionalProperties: false
@@ -127,7 +127,7 @@ export const baseToolDefinitions = [
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path, or a unique markdown filename for append and patch operations.' },
+        path: { type: 'string', minLength: 1, description: 'Vault-relative note path, or a unique filename for append and patch operations. The `.md` extension may be omitted.' },
         mode: { type: 'string', enum: ['replace', 'append', 'patch'], default: 'replace', description: 'Update strategy. `replace` writes the whole note, `append` adds to the end, `patch` applies exact substring replacements.' },
         content: { type: 'string', description: 'Required for `replace` and `append`. Complete content for `replace`, appended text for `append`.' },
         separator: { type: 'string', default: '\n\n', description: 'Used only for `append`. Inserted between existing content and appended text when the note is not empty.' },
@@ -167,13 +167,13 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.MOVE_NOTE,
     title: 'Move Note',
-    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault. This automatically follows owned asset files and rewrites supported internal note links that pointed to the moved note. Follow-up writes are best-effort and are not applied transactionally with the rename. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
+    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault, and `.md` may be omitted for source and destination note paths. This automatically follows owned asset files and rewrites supported internal note links that pointed to the moved note. Follow-up writes are best-effort and are not applied transactionally with the rename. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        sourcePath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Existing vault-relative markdown path or unique markdown filename to move.' },
-        destinationPath: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'New vault-relative markdown path to move the note to.' },
+        sourcePath: { type: 'string', minLength: 1, description: 'Existing vault-relative note path or unique filename to move. The `.md` extension may be omitted.' },
+        destinationPath: { type: 'string', minLength: 1, description: 'New vault-relative note path to move the note to. The `.md` extension may be omitted.' },
         overwrite: { type: 'boolean', default: false, description: 'Replace an existing destination note when true.' }
       },
       required: ['sourcePath', 'destinationPath'],
@@ -194,12 +194,12 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.DELETE_NOTE,
     title: 'Delete Note',
-    description: 'Delete a markdown note by vault-relative path. This also removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at the deleted note. Follow-up writes are best-effort and are not applied transactionally with the delete. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
+    description: 'Delete one markdown note by vault-relative path or unique filename. The `.md` extension may be omitted when the note reference is unique. This also removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at the deleted note. Follow-up writes are best-effort and are not applied transactionally with the delete. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', minLength: 1, pattern: '\\.md$', description: 'Vault-relative markdown path to delete.' }
+        path: { type: 'string', minLength: 1, description: 'Vault-relative note path or unique filename to delete. The `.md` extension may be omitted.' }
       },
       required: ['path'],
       additionalProperties: false

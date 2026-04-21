@@ -100,7 +100,6 @@ describe('Security Module', () => {
         'note.doc',
         'note.pdf',
         'note.md.txt',
-        'note',
         'note.markdown', // Only .md is supported
         '.gitignore',
         'folder/file.txt'
@@ -117,6 +116,10 @@ describe('Security Module', () => {
           expect(error.data.path).toBe(file);
         }
       });
+    });
+
+    it('should accept note paths without the .md extension', () => {
+      expect(() => validateMarkdownFile('note')).not.toThrow();
     });
   });
 

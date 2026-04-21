@@ -1,29 +1,24 @@
 import { diffFrontmatter, upsertFrontmatter } from './frontmatter.js';
 import { Errors } from './errors.js';
 import { extractFrontmatter } from './metadata.js';
+import { canonicalizeTag, dedupeTags, isValidTag, normalizeTagValue } from './tag-format.js';
 import { extractFrontmatterTags, extractInlineTags } from './tags.js';
 import { readResolvedNote, writeNote } from './tools.js';
 import { getVaultSnapshot } from './vault-analysis.js';
 
-function normalizeTag(tag) {
-  return String(tag || '').trim().replace(/^#+/, '');
+function normalizeTags(tags) {
+  return dedupeTags(tags);
 }
 
-function normalizeTags(tags) {
-  const uniqueTags = [];
-  const seen = new Set();
-
-  for (const rawTag of tags || []) {
-    const tag = normalizeTag(rawTag);
-    if (!tag || seen.has(tag)) {
-      continue;
+function ensureValidTags(tags, contextPath) {
+  for (const tag of tags) {
+    if (!isValidTag(tag)) {
+      throw Errors.invalidParams(
+        `Invalid tag: ${normalizeTagValue(tag)}. Tags must contain letters, numbers, underscores, hyphens, or forward slashes, and cannot be only numbers.`,
+        { path: contextPath, tag: normalizeTagValue(tag) }
+      );
     }
-
-    seen.add(tag);
-    uniqueTags.push(tag);
   }
-
-  return uniqueTags;
 }
 
 function sortTagEntries(entries) {
@@ -31,7 +26,7 @@ function sortTagEntries(entries) {
     if (right.count !== left.count) {
       return right.count - left.count;
     }
-    return left.tag.localeCompare(right.tag);
+    return left.tag.localeCompare(right.tag, undefined, { sensitivity: 'base' });
   });
 }
 
@@ -40,15 +35,20 @@ function buildTagInventory(notes, includeNotes) {
 
   for (const note of notes) {
     for (const tag of note.tags || []) {
-      if (!tagMap.has(tag)) {
-        tagMap.set(tag, {
+      const canonical = canonicalizeTag(tag);
+      if (!canonical) {
+        continue;
+      }
+
+      if (!tagMap.has(canonical)) {
+        tagMap.set(canonical, {
           tag,
           count: 0,
           notes: []
         });
       }
 
-      const entry = tagMap.get(tag);
+      const entry = tagMap.get(canonical);
       entry.count += 1;
       if (includeNotes) {
         entry.notes.push(note.path);
@@ -72,7 +72,8 @@ function applyTagMode(currentTags, requestedTags, mode) {
   }
 
   if (mode === 'remove') {
-    return currentTags.filter((tag) => !requestedTags.includes(tag));
+    const requested = new Set(requestedTags.map(canonicalizeTag));
+    return currentTags.filter((tag) => !requested.has(canonicalizeTag(tag)));
   }
 
   throw Errors.invalidParams(`Unsupported tag mode: ${mode}`, { mode });
@@ -120,6 +121,7 @@ export async function writeTags(vaultPath, notePath, tagsInput, options = {}) {
   }
 
   const requestedTags = normalizeTags(tagsInput);
+  ensureValidTags(requestedTags, note.path);
   const beforeFrontmatterTags = normalizeTags(extractFrontmatterTags(note.content));
   const afterFrontmatterTags = applyTagMode(beforeFrontmatterTags, requestedTags, mode);
   const inlineTagsDetected = normalizeTags(extractInlineTags(note.content));
@@ -134,8 +136,10 @@ export async function writeTags(vaultPath, notePath, tagsInput, options = {}) {
   }
 
   const changes = diffFrontmatter(frontmatter || {}, nextFrontmatter);
-  const addedTags = afterFrontmatterTags.filter((tag) => !beforeFrontmatterTags.includes(tag));
-  const removedTags = beforeFrontmatterTags.filter((tag) => !afterFrontmatterTags.includes(tag));
+  const beforeCanonical = new Set(beforeFrontmatterTags.map(canonicalizeTag));
+  const afterCanonical = new Set(afterFrontmatterTags.map(canonicalizeTag));
+  const addedTags = afterFrontmatterTags.filter((tag) => !beforeCanonical.has(canonicalizeTag(tag)));
+  const removedTags = beforeFrontmatterTags.filter((tag) => !afterCanonical.has(canonicalizeTag(tag)));
 
   if (!dryRun) {
     const nextContent = upsertFrontmatter(note.content, nextFrontmatter);

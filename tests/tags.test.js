@@ -79,20 +79,26 @@ describe('Functional Tag Utilities', () => {
       
       expect(tags).toEqual(['tag_with_underscore', 'tag-with-dash', 'tag/with/slash']);
     });
-    
-    it('should handle dots in tags but not as ending', () => {
-      const content = '#tag.with.dot text';
+
+    it('should support unicode letters and treat dots as delimiters', () => {
+      const content = '#cafe #café #タグ #tag.with.dot text';
       const tags = extractInlineTags(content);
-      
-      // Note: dots at the end are treated as boundaries in the current implementation
-      expect(tags).toEqual(['tag']);
+
+      expect(tags).toEqual(['cafe', 'café', 'タグ', 'tag']);
     });
 
-    it('should remove trailing dots', () => {
-      const content = 'Sentence ending with #tag.';
+    it('should ignore numeric-only tags', () => {
+      const content = '#1984 #y1984';
       const tags = extractInlineTags(content);
-      
-      expect(tags).toEqual(['tag']);
+
+      expect(tags).toEqual(['y1984']);
+    });
+
+    it('should deduplicate tags case-insensitively', () => {
+      const content = '#Tag #tag #TAG';
+      const tags = extractInlineTags(content);
+
+      expect(tags).toEqual(['Tag']);
     });
   });
 
@@ -132,10 +138,10 @@ describe('Functional Tag Utilities', () => {
     });
 
     it('should deduplicate tags', () => {
-      const content = '---\ntags: [duplicate]\n---\nContent with #duplicate tag';
+      const content = '---\ntags: [Duplicate]\n---\nContent with #duplicate tag';
       const tags = extractTags(content);
       
-      expect(tags).toEqual(['duplicate']);
+      expect(tags).toEqual(['Duplicate']);
     });
 
     it('should handle empty content', () => {

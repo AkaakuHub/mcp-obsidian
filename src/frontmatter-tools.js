@@ -3,7 +3,13 @@ import { config } from './config.js';
 import { Errors } from './errors.js';
 import { prepareFrontmatterUpdate } from './frontmatter.js';
 import { invalidateSnapshotsForVault } from './vault-cache.js';
-import { validateFileSize, validateMarkdownExtension, validatePathWithinBase, validateRequiredParameters } from './validation.js';
+import {
+  normalizeMarkdownNotePath,
+  validateFileSize,
+  validateMarkdownExtension,
+  validatePathWithinBase,
+  validateRequiredParameters
+} from './validation.js';
 
 function assertValid(validationResult, errorFactory) {
   if (!validationResult.valid) {
@@ -12,13 +18,14 @@ function assertValid(validationResult, errorFactory) {
 }
 
 async function readNoteForMutation(vaultPath, notePath) {
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
   const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 
-  const extensionValidation = validateMarkdownExtension(notePath);
+  const extensionValidation = validateMarkdownExtension(normalizedNotePath);
   assertValid(extensionValidation, (msg) => Errors.invalidParams(msg, { path: notePath }));
 
-  const pathValidation = validatePathWithinBase(vaultPath, notePath);
+  const pathValidation = validatePathWithinBase(vaultPath, normalizedNotePath);
   assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
 
   const fullPath = pathValidation.resolvedPath;
@@ -50,10 +57,11 @@ async function readNoteForMutation(vaultPath, notePath) {
 
 async function planFrontmatterUpdate(vaultPath, notePath, fields, merge = true) {
   const { fullPath, content } = await readNoteForMutation(vaultPath, notePath);
+  const normalizedNotePath = normalizeMarkdownNotePath(notePath);
   const prepared = prepareFrontmatterUpdate(content, fields, merge);
 
   return {
-    path: notePath,
+    path: normalizedNotePath,
     fullPath,
     originalContent: content,
     nextContent: prepared.nextContent,

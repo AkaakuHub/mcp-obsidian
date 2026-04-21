@@ -102,6 +102,13 @@ status: active
       
       expect(tags).toEqual(['my-tag', 'another_tag', 'tag123']);
     });
+
+    it('should support unicode tags and deduplicate case-insensitively', () => {
+      const content = '#タグ #Tag #tag';
+      const tags = extractInlineTags(content);
+
+      expect(tags).toEqual(['タグ', 'Tag']);
+    });
     
     it('should deduplicate tags', () => {
       const content = '#duplicate #other #duplicate';

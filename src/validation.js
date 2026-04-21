@@ -4,6 +4,28 @@
 
 import path from 'path';
 
+export function normalizeMarkdownNotePath(filePath) {
+  if (typeof filePath !== 'string') {
+    return filePath;
+  }
+
+  const trimmed = filePath.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const basename = path.basename(trimmed);
+  const extension = path.extname(trimmed);
+  if (!extension) {
+    if (basename.startsWith('.')) {
+      return trimmed;
+    }
+    return `${trimmed}.md`;
+  }
+
+  return trimmed;
+}
+
 /**
  * Validates that a path is within the allowed directory (pure function)
  * @param {string} basePath - The base directory path
@@ -64,8 +86,11 @@ export function validateMarkdownExtension(filePath) {
       error: 'File path is required'
     };
   }
-  
-  if (!filePath.toLowerCase().endsWith('.md')) {
+
+  const normalizedPath = normalizeMarkdownNotePath(filePath);
+  const extension = path.extname(normalizedPath).toLowerCase();
+
+  if (extension !== '.md') {
     return {
       valid: false,
       error: 'Only markdown files (.md) are supported'

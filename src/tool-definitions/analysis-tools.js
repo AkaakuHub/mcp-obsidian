@@ -4,12 +4,12 @@ export const analysisToolDefinitions = [
   {
     name: TOOL_NAMES.WRITE_FRONTMATTER,
     title: 'Write Frontmatter',
-    description: 'Preview or apply a frontmatter update for one note. `dryRun: true` is the safe default. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
+    description: 'Preview or apply a frontmatter update for one note. Accepts a vault-relative note path and appends `.md` automatically when omitted. `dryRun: true` is the safe default. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', pattern: '\\.md$', description: 'Vault-relative markdown path to update.' },
+        path: { type: 'string', description: 'Vault-relative note path to update. The `.md` extension may be omitted.' },
         fields: { type: 'object', description: 'Frontmatter keys and values to write.' },
         merge: { type: 'boolean', default: true, description: 'When true, merge with existing frontmatter. When false, replace it.' },
         dryRun: { type: 'boolean', default: true, description: 'When true, return the diff without writing the note.' }
@@ -69,7 +69,7 @@ export const analysisToolDefinitions = [
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        notePath: { type: 'string', pattern: '\\.md$', description: 'Optional specific note path. When provided, returns tags for that note only.' },
+        notePath: { type: 'string', description: 'Optional specific note path. When provided, returns tags for that note only. The `.md` extension may be omitted.' },
         directory: { type: 'string', description: 'Optional vault-relative directory to scan for aggregated tag usage.' },
         includeNotes: { type: 'boolean', default: false, description: 'When true, include note paths for each aggregated tag.' }
       },
@@ -119,13 +119,13 @@ export const analysisToolDefinitions = [
   {
     name: TOOL_NAMES.WRITE_TAGS,
     title: 'Write Tags',
-    description: 'Preview or apply tag updates for one note by editing only `frontmatter.tags`. Inline `#tags` in the note body are never rewritten and are reported separately for awareness. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
+    description: 'Preview or apply tag updates for one note by editing only `frontmatter.tags`. Tags are matched case-insensitively, must follow Obsidian tag rules, and inline `#tags` in the note body are never rewritten. Inline tags are reported separately for awareness. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
-        path: { type: 'string', pattern: '\\.md$', description: 'Vault-relative markdown path to update.' },
-        tags: { type: 'array', items: { type: 'string' }, description: 'Tag values to add, remove, or replace in `frontmatter.tags`. Leading `#` is ignored.' },
+        path: { type: 'string', description: 'Vault-relative note path to update. The `.md` extension may be omitted.' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tag values to add, remove, or replace in `frontmatter.tags`. Leading `#` is ignored. Tags are case-insensitive and cannot be only numbers.' },
         mode: { type: 'string', enum: ['replace', 'add', 'remove'], default: 'replace', description: 'Tag update mode for `frontmatter.tags` only. This does not modify inline `#tags`.' },
         dryRun: { type: 'boolean', default: true, description: 'When true, return the planned changes without writing.' }
       },

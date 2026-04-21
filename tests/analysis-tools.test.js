@@ -103,12 +103,26 @@ describe('analysis tools', () => {
     });
   });
 
+  it('should merge tag casing case-insensitively and reject invalid write-tags input', async () => {
+    readFile.mockResolvedValue('---\ntags: [Project]\n---\n#project\n#タグ');
+
+    const listed = await listTags(vaultPath, { notePath: 'task' });
+
+    expect(listed.frontmatterTags).toEqual(['Project']);
+    expect(listed.inlineTags).toEqual(['project', 'タグ']);
+    expect(listed.tags).toEqual(['Project', 'タグ']);
+
+    await expect(writeTags(vaultPath, 'task', ['2024'], { dryRun: true }))
+      .rejects
+      .toThrow('Invalid tag: 2024');
+  });
+
   it('should dry-run and apply frontmatter tag updates', async () => {
     readFile.mockResolvedValue('---\ntags: [project]\n---\nBody with #inline');
     writeFile.mockResolvedValue();
 
     const dryRun = await writeTags(vaultPath, 'task.md', ['#urgent', 'project'], { mode: 'add', dryRun: true });
-    const applied = await writeTags(vaultPath, 'task.md', ['urgent'], { mode: 'add', dryRun: false });
+    const applied = await writeTags(vaultPath, 'task', ['Project'], { mode: 'add', dryRun: false });
 
     expect(dryRun.afterFrontmatterTags).toEqual(['project', 'urgent']);
     expect(dryRun.inlineTagsDetected).toEqual(['inline']);

@@ -52,7 +52,7 @@ describe('Server Tools Definition', () => {
     const toolDef = getToolDefinition(TOOL_NAMES.DELETE_NOTE);
 
     expect(toolDef.name).toBe(TOOL_NAMES.DELETE_NOTE);
-    expect(toolDef.description).toContain('Delete a markdown note');
+    expect(toolDef.description).toContain('Delete one markdown note');
     expect(toolDef.inputSchema.required).toContain('path');
     expect(toolDef.inputSchema.properties.path).toBeDefined();
   });

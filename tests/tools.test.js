@@ -226,6 +226,17 @@ describe('Tools module', () => {
       await expect(readNote(mockVaultPath, 'nonexistent.md'))
         .rejects.toThrow('Resource not found');
     });
+
+    it('should accept a unique filename without the .md extension', async () => {
+      access.mockRejectedValueOnce(new Error('ENOENT'));
+      glob.mockResolvedValue(['/test/vault/projects/note.md']);
+      readFile.mockResolvedValue('# Found Note');
+
+      const result = await readNote(mockVaultPath, 'note');
+
+      expect(glob).toHaveBeenCalledWith('/test/vault/**/note.md');
+      expect(result).toBe('# Found Note');
+    });
   });
 
   describe('writeNote', () => {
@@ -554,7 +565,7 @@ describe('Tools module', () => {
 
       await moveNote(mockVaultPath, 'source.md', 'archive/source.md', true);
 
-      expect(unlink).toHaveBeenCalledWith('/test/vault/archive/source.md');
+      expect(unlink).toHaveBeenCalledWith(expect.stringContaining('/test/vault/archive/source.md.mcp-overwrite-backup-'));
       expect(rm).toHaveBeenCalledWith('/test/vault/archive/assets/old.png');
       expect(rename).toHaveBeenCalledWith('/test/vault/source.md', '/test/vault/archive/source.md');
     });
@@ -764,6 +775,44 @@ describe('Tools module', () => {
         'Wiki [[archive/source|Source Alias]] and [Source](archive/source.md)',
         'utf-8'
       );
+    });
+
+    it('should stage overwrite through a backup path before cleaning destination assets', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (
+          targetPath === '/test/vault/source.md' ||
+          targetPath === '/test/vault/archive/source.md' ||
+          targetPath === '/test/vault/archive-assets/image.png'
+        ) {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockResolvedValue([
+        '/test/vault/source.md',
+        '/test/vault/archive/source.md'
+      ]);
+      readFile.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return '![[source-assets/image.png]]';
+        }
+        if (targetPath === '/test/vault/archive/source.md') {
+          return '![[archive-assets/image.png]]';
+        }
+        return '';
+      });
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+      rm.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'source', 'archive/source', true);
+
+      expect(rename).toHaveBeenNthCalledWith(1, '/test/vault/archive/source.md', expect.stringContaining('/test/vault/archive/source.md.mcp-overwrite-backup-'));
+      expect(rename).toHaveBeenNthCalledWith(2, '/test/vault/source.md', '/test/vault/archive/source.md');
+      expect(rm).toHaveBeenCalledWith('/test/vault/archive-assets/image.png');
+      expect(unlink).toHaveBeenCalledWith(expect.stringContaining('/test/vault/archive/source.md.mcp-overwrite-backup-'));
     });
 
     it('should leave ambiguous bare note links unchanged during follow-up', async () => {

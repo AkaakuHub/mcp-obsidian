@@ -3,20 +3,21 @@
  */
 
 import { extractH1Title } from './title-search.js';
+import { dedupeTags, extractInlineTagsFromContent, normalizeTagValue } from './tag-format.js';
 import YAML from 'yaml';
 
 function normalizeFrontmatterTags(frontmatter) {
   const rawTags = frontmatter?.tags;
 
   if (Array.isArray(rawTags)) {
-    return rawTags
+    return dedupeTags(rawTags
       .filter((tag) => typeof tag === 'string')
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+      .map(normalizeTagValue)
+      .filter(Boolean));
   }
 
   if (typeof rawTags === 'string' && rawTags.trim()) {
-    return [rawTags.trim()];
+    return dedupeTags([rawTags]);
   }
 
   return [];
@@ -110,15 +111,7 @@ function parseYamlContent(yamlContent) {
  * @returns {string[]} Array of tag names (without #)
  */
 export function extractInlineTags(content) {
-  if (!content) return [];
-  
-  // Match #tag-name pattern (alphanumeric and hyphens)
-  const tagPattern = /#([a-zA-Z0-9-_]+)/g;
-  const matches = content.match(tagPattern) || [];
-  
-  // Remove # prefix and deduplicate
-  const tags = matches.map(tag => tag.substring(1));
-  return [...new Set(tags)];
+  return extractInlineTagsFromContent(content);
 }
 
 /**
@@ -158,7 +151,7 @@ export function extractContentPreview(content, maxLength = 200) {
 export function extractNoteMetadata(content, path) {
   const { frontmatter, contentWithoutFrontmatter, parseError } = extractFrontmatter(content);
   const inlineTags = extractInlineTags(contentWithoutFrontmatter);
-  const tags = [...new Set([...normalizeFrontmatterTags(frontmatter), ...inlineTags])];
+  const tags = dedupeTags([...normalizeFrontmatterTags(frontmatter), ...inlineTags]);
   
   const titleInfo = extractH1Title(content);
   const title = titleInfo ? titleInfo.title : null;

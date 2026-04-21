@@ -3,6 +3,12 @@
  */
 
 import { extractFrontmatter } from './metadata.js';
+import {
+  canonicalizeTag,
+  dedupeTags,
+  extractInlineTagsFromContent,
+  normalizeTagValue
+} from './tag-format.js';
 
 /**
  * Extracts tags from markdown content (pure function)
@@ -13,18 +19,11 @@ export function extractTags(content) {
   if (!content || typeof content !== 'string') {
     return [];
   }
-  
-  const tags = new Set();
-  
-  // Extract frontmatter tags
-  const frontmatterTags = extractFrontmatterTags(content);
-  frontmatterTags.forEach(tag => tags.add(tag));
-  
-  // Extract inline tags
-  const inlineTags = extractInlineTags(content);
-  inlineTags.forEach(tag => tags.add(tag));
-  
-  return Array.from(tags);
+
+  return dedupeTags([
+    ...extractFrontmatterTags(content),
+    ...extractInlineTags(content)
+  ]);
 }
 
 /**
@@ -37,14 +36,14 @@ export function extractFrontmatterTags(content) {
   const rawTags = frontmatter?.tags;
 
   if (Array.isArray(rawTags)) {
-    return rawTags
+    return dedupeTags(rawTags
       .filter(tag => typeof tag === 'string')
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+      .map(normalizeTagValue)
+      .filter(tag => tag.length > 0));
   }
 
   if (typeof rawTags === 'string' && rawTags.trim()) {
-    return [rawTags.trim()];
+    return dedupeTags([rawTags]);
   }
 
   return [];
@@ -56,23 +55,7 @@ export function extractFrontmatterTags(content) {
  * @returns {Array<string>} Array of inline tags
  */
 export function extractInlineTags(content) {
-  // Remove code blocks to avoid false positives
-  const contentWithoutCode = removeCodeBlocks(content);
-  
-  const tags = [];
-  // Match hashtags that are not part of headings
-  // Tag name can contain letters, numbers, underscore, hyphen, plus, dot, and forward slash
-  const inlineTagRegex = /(?:^|[^#\w])#([a-zA-Z0-9_\-+.\/]+?)(?=[^a-zA-Z0-9_\-+\/]|$)/gm;
-  let match;
-  
-  while ((match = inlineTagRegex.exec(contentWithoutCode)) !== null) {
-    let tag = match[1];
-    // Remove trailing dots (but keep dots inside the tag like .net)
-    tag = tag.replace(/\.+$/, '');
-    if (tag) tags.push(tag);
-  }
-  
-  return tags;
+  return extractInlineTagsFromContent(removeCodeBlocks(content || ''));
 }
 
 /**
@@ -97,11 +80,11 @@ export function hasAllTags(noteTags, searchTags, caseSensitive = false) {
   }
   
   const normalizedNoteTags = noteTags.map(tag => 
-    caseSensitive ? tag : tag.toLowerCase()
+    caseSensitive ? normalizeTagValue(tag) : canonicalizeTag(tag)
   );
   
   const normalizedSearchTags = searchTags.map(tag => 
-    caseSensitive ? tag : tag.toLowerCase()
+    caseSensitive ? normalizeTagValue(tag) : canonicalizeTag(tag)
   );
   
   // Check if all search tags are present (AND operation)
