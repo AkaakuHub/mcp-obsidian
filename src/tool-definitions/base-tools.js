@@ -220,31 +220,5 @@ export const baseToolDefinitions = [
       required: ['path', 'status'],
       additionalProperties: false
     }
-  },
-  {
-    name: 'search-by-tags',
-    title: 'Search by Tags',
-    description: 'Find notes that contain all requested tags. Searches inline `#tags` and common frontmatter `tags` forms.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        tags: { type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1, description: 'Tags to require. Matching uses AND semantics across the list.' },
-        directory: { type: 'string', description: 'Optional vault-relative directory to limit the scan scope.' },
-        caseSensitive: { type: 'boolean', default: false, description: 'Match tags with exact casing when true.' }
-      },
-      required: ['tags'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        notes: { type: 'array', items: { type: 'object', properties: { path: { type: 'string' }, tags: { type: 'array', items: { type: 'string' } } }, required: ['path', 'tags'], additionalProperties: false } },
-        count: { type: 'integer', minimum: 0 }
-      },
-      required: ['notes', 'count'],
-      additionalProperties: false
-    }
   }
 ];

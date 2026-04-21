@@ -3,7 +3,6 @@ export {
   bulkUpdateFrontmatter
 } from './frontmatter-tools.js';
 export {
-  listNotesDetailed,
   extractTasks,
   analyzeLinks
 } from './analysis-query-tools.js';

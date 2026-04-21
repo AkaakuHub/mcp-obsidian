@@ -9,12 +9,10 @@ vi.mock('../src/tools.js', () => ({
   writeNote: vi.fn(),
   appendToNote: vi.fn(),
   moveNote: vi.fn(),
-  deleteNote: vi.fn(),
-  searchByTags: vi.fn()
+  deleteNote: vi.fn()
 }));
 
 vi.mock('../src/analysis-tools.js', () => ({
-  listNotesDetailed: vi.fn(),
   writeFrontmatter: vi.fn(),
   bulkUpdateFrontmatter: vi.fn(),
   extractTasks: vi.fn(),
@@ -90,27 +88,6 @@ const outputSamples = {
     path: 'note.md',
     status: 'deleted'
   },
-  'search-by-tags': {
-    notes: [{ path: 'note.md', tags: ['tag'] }],
-    count: 1
-  },
-  'list-notes-detailed': {
-    notes: [{
-      path: 'note.md',
-      title: 'Note',
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-02T00:00:00.000Z',
-      sizeBytes: 100,
-      lineCount: 10,
-      tags: ['tag'],
-      linkCount: 1,
-      backlinkCount: 2,
-      taskCount: 1
-    }],
-    count: 1,
-    errors: [],
-    pagination: { total: 1, returned: 1, limit: 100, offset: 0, hasMore: false }
-  },
   'write-frontmatter': {
     path: 'note.md',
     dryRun: true,
@@ -181,8 +158,6 @@ const toolArgs = {
   'append-to-note': { path: 'note.md', content: '\n- [ ] todo' },
   'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   'delete-note': { path: 'note.md' },
-  'search-by-tags': { tags: ['tag'] },
-  'list-notes-detailed': {},
   'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
   'bulk-update-frontmatter': { fields: { area: 'work' } },
   'extract-tasks': {},
@@ -204,9 +179,6 @@ describe('tool contracts', () => {
     tools.appendToNote.mockResolvedValue(outputSamples['append-to-note']);
     tools.moveNote.mockResolvedValue(outputSamples['move-note']);
     tools.deleteNote.mockResolvedValue('note.md');
-    tools.searchByTags.mockResolvedValue(outputSamples['search-by-tags']);
-
-    analysisTools.listNotesDetailed.mockResolvedValue(outputSamples['list-notes-detailed']);
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);
     analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-update-frontmatter']);
     analysisTools.extractTasks.mockResolvedValue(outputSamples['extract-tasks']);

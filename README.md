@@ -207,12 +207,6 @@ Delete a note from your vault.
 - Validated deletion with proper path checks
 - Path security checks
 
-### search-by-tags
-Find notes containing specific tags.
-- Supports inline `#tags` and common frontmatter `tags` shapes
-- AND operation for multiple tags
-- Case-sensitive/insensitive matching
-
 ### move-many
 Preview or apply multiple note moves in one call.
 - `dryRun: true` is the safe default
@@ -224,8 +218,6 @@ Preview or apply multiple note moves in one call.
 These tools are aimed at vault cleanup, inventory, and preview-first bulk operations.
 
 ### Structure and note inspection
-- `list-notes-detailed` - path, created/updated timestamps, tags, size, task count, link count, backlink count
-- `list-folders` - folder tree and flat folder paths
 
 ### Frontmatter and bulk edits
 - `write-frontmatter` - single-note frontmatter update with `dryRun`

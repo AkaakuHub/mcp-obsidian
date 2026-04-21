@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { appendToNote, deleteNote, listNotes, moveNote, readResolvedNote, searchByFilename, searchByTags, searchVault, writeNote } from '../tools.js';
+import { appendToNote, deleteNote, listNotes, moveNote, readResolvedNote, searchByFilename, searchVault, writeNote } from '../tools.js';
 
 function makeStructuredDescription(title, count, extra = '') {
   const countText = typeof count === 'number' ? `${count} result${count === 1 ? '' : 's'}` : title;
@@ -75,11 +75,6 @@ export function createBaseHandlers(vaultPath) {
         `Note deleted successfully: ${args.path}`,
         createMetadata(startTime, { tool: toolName })
       );
-    },
-    'search-by-tags': async (args, startTime, toolName) => {
-      const { tags, directory, caseSensitive = false } = args;
-      const result = await searchByTags(vaultPath, tags, directory, caseSensitive);
-      return structuredResponse(result, `Found ${result.count} notes with requested tags`, createMetadata(startTime, { tool: toolName, tagsSearched: tags.length }));
     }
   };
 }

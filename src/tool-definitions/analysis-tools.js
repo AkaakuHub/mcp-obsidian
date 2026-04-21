@@ -1,34 +1,5 @@
 export const analysisToolDefinitions = [
   {
-    name: 'list-notes-detailed',
-    title: 'List Notes Detailed',
-    description: 'List notes with timestamps, size, tags, task counts, link counts, and backlinks for triage and cleanup.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        directory: { type: 'string', description: 'Optional vault-relative directory to scan.' },
-        limit: { type: 'integer', default: 100, minimum: 1, maximum: 500, description: 'Maximum number of notes to return.' },
-        offset: { type: 'integer', default: 0, minimum: 0, description: 'Number of notes to skip for pagination.' },
-        sortBy: { type: 'string', enum: ['path', 'createdAt', 'updatedAt', 'sizeBytes', 'lineCount', 'linkCount', 'backlinkCount', 'taskCount'], description: 'Field to sort by before pagination.' },
-        order: { type: 'string', enum: ['asc', 'desc'], description: 'Sort direction.' }
-      },
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        notes: { type: 'array' },
-        count: { type: 'integer', minimum: 0 },
-        errors: { type: 'array' },
-        pagination: { type: 'object' }
-      },
-      required: ['notes', 'count', 'errors', 'pagination'],
-      additionalProperties: false
-    }
-  },
-  {
     name: 'write-frontmatter',
     title: 'Write Frontmatter',
     description: 'Preview or apply a frontmatter update for one note. `dryRun: true` is the safe default.',

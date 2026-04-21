@@ -12,8 +12,6 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('append-to-note');
     expect(toolNames).toContain('move-note');
     expect(toolNames).toContain('delete-note');
-    expect(toolNames).toContain('search-by-tags');
-    expect(toolNames).toContain('list-notes-detailed');
     expect(toolNames).toContain('write-frontmatter');
     expect(toolNames).toContain('bulk-update-frontmatter');
     expect(toolNames).toContain('extract-tasks');
@@ -51,9 +49,6 @@ describe('Tool Definitions', () => {
     const listTool = toolDefinitions.find(t => t.name === 'list-notes');
     expect(listTool.inputSchema.required).toBeUndefined();
     expect(listTool.inputSchema.properties.includeFolders).toBeDefined();
-
-    const tagSearchTool = toolDefinitions.find(t => t.name === 'search-by-tags');
-    expect(tagSearchTool.inputSchema.required).toEqual(['tags']);
     
     const filenameSearchTool = toolDefinitions.find(t => t.name === 'search-by-filename');
     expect(filenameSearchTool.inputSchema.required).toEqual(['query']);

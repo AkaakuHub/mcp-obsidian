@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, listNotesDetailed, moveMany, writeFrontmatter } from '../analysis-tools.js';
+import { analyzeLinks, bulkUpdateFrontmatter, extractTasks, moveMany, writeFrontmatter } from '../analysis-tools.js';
 
 function formatLineList(items, emptyMessage) {
   return items.length > 0 ? items.join('\n') : emptyMessage;
@@ -7,10 +7,6 @@ function formatLineList(items, emptyMessage) {
 
 export function createAnalysisHandlers(vaultPath) {
   return {
-    'list-notes-detailed': async (args, startTime, toolName) => {
-      const result = await listNotesDetailed(vaultPath, args);
-      return structuredResponse(result, `Detailed listing for ${result.count} notes`, createMetadata(startTime, { tool: toolName }));
-    },
     'write-frontmatter': async (args, startTime, toolName) => {
       const result = await writeFrontmatter(vaultPath, args.path, args.fields, { merge: args.merge, dryRun: args.dryRun });
       return structuredResponse(result, result.dryRun ? `Dry-run frontmatter diff for ${args.path}` : `Updated frontmatter for ${args.path}`, createMetadata(startTime, { tool: toolName, dryRun: result.dryRun }));

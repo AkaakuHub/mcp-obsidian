@@ -110,39 +110,6 @@ describe('Edge Cases and Error Scenarios', () => {
     });
   });
 
-  describe('Tag search edge cases', () => {
-    it('should handle notes with no tags', async () => {
-      await writeFile(path.join(testVault, 'no-tags.md'), 'Content without tags');
-      
-      const { searchByTags } = await import('../src/tools.js');
-      const result = await searchByTags(testVault, ['anytag']);
-      
-      expect(result.count).toBe(0);
-    });
-
-    it('should handle empty tag array', async () => {
-      const { searchByTags } = await import('../src/tools.js');
-      
-      await expect(searchByTags(testVault, [])).resolves.toBeDefined();
-    });
-
-    it('should handle tags with special characters', async () => {
-      const content = '---\ntags: [tag-with-dash, tag.with.dot, tag/with/slash]\n---\n# Content';
-      await writeFile(path.join(testVault, 'special-tags.md'), content);
-      
-      const { searchByTags } = await import('../src/tools.js');
-      
-      const result1 = await searchByTags(testVault, ['tag-with-dash']);
-      expect(result1.count).toBe(1);
-      
-      const result2 = await searchByTags(testVault, ['tag.with.dot']);
-      expect(result2.count).toBe(1);
-      
-      const result3 = await searchByTags(testVault, ['tag/with/slash']);
-      expect(result3.count).toBe(1);
-    });
-  });
-
   describe('Path handling edge cases', () => {
     it('should normalize different path separators', async () => {
       const { writeNote, readNote } = await import('../src/tools.js');
