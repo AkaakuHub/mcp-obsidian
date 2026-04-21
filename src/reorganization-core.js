@@ -80,7 +80,7 @@ function validateDestinationPath(vaultPath, destinationPath) {
   return destinationPath;
 }
 
-export function buildMovePlan(snapshot, vaultPath, moveSpec, overwrite, seenSources, seenDestinations, existingPaths) {
+function buildMovePlan(snapshot, vaultPath, moveSpec, overwrite, seenSources, seenDestinations, existingPaths) {
   const { sourcePath, destinationPath } = moveSpec;
   const errors = [];
 

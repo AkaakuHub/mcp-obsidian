@@ -41,7 +41,5 @@ describe('Tool Definitions', () => {
     const filenameSearchTool = toolDefinitions.find(t => t.name === TOOL_NAMES.SEARCH_BY_FILENAME);
     expect(filenameSearchTool.inputSchema.required).toEqual(['query']);
 
-    const moveManyTool = toolDefinitions.find(t => t.name === TOOL_NAMES.BULK_MOVE_NOTE);
-    expect(moveManyTool.inputSchema.required).toEqual(['moves']);
   });
 });

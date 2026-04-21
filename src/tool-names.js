@@ -7,10 +7,7 @@ export const TOOL_NAMES = {
   MOVE_NOTE: 'move-note',
   DELETE_NOTE: 'delete-note',
   WRITE_FRONTMATTER: 'write-frontmatter',
-  BULK_WRITE_FRONTMATTER: 'bulk-write-frontmatter',
   EXTRACT_TASKS: 'extract-tasks',
-  BULK_MOVE_NOTE: 'bulk-move-note',
   LIST_TAGS: 'list-tags',
-  WRITE_TAGS: 'write-tags',
-  BULK_DELETE_NOTE: 'bulk-delete-note'
+  WRITE_TAGS: 'write-tags'
 };

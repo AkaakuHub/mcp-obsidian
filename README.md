@@ -22,7 +22,7 @@ This server instead works directly with Obsidian vault files on disk, making it 
 - **Performance-conscious scanning** with snapshot reuse, pagination, and resource limits
 - **Rich search capabilities** with boolean operators, title/tag filters, and tag-based search
 - **Metadata support** with frontmatter and inline tag parsing
-- **Vault analysis tools** for folder structure, task extraction, link graph inspection, and audits
+- **Vault analysis tools** for folder structure, task extraction, and tag/frontmatter management
 
 ## Recent Updates
 
@@ -207,21 +207,14 @@ Delete a note from your vault.
 - Rewrites supported internal note links in surviving notes so they no longer point at the deleted note
 - Deletes asset files that were referenced only by the deleted note
 
-### bulk-move-note
-Preview or apply multiple note moves in one call.
-- `dryRun: true` is the safe default
-- Validates all moves before writing
-- Attempts rollback if a move fails after earlier moves succeeded
-
 ## Organization Tools
 
-These tools are aimed at vault cleanup, inventory, and preview-first bulk operations.
+These tools are aimed at vault cleanup, inventory, and preview-first note updates.
 
 ### Structure and note inspection
 
-### Frontmatter and bulk edits
+### Frontmatter
 - `write-frontmatter` - single-note frontmatter update with `dryRun`
-- `bulk-write-frontmatter` - multi-note frontmatter updates with `dryRun`, per-note diffs, and target counts
 
 Examples:
 ```json
@@ -230,20 +223,15 @@ Examples:
 ```json
 { "path": "Projects/alpha.md", "fields": { "status": "active", "area": "work" }, "dryRun": true }
 ```
-```json
-{ "directory": "Projects", "fields": { "area": "work" }, "dryRun": true, "limit": 50 }
-```
 
-### Tasks and reorganization
+### Tasks
 - `extract-tasks` - vault-wide task extraction with due-date detection
-- `bulk-move-note` - preview-first batch move execution with rollback attempts plus automatic note-link and owned-asset follow-up
-- `bulk-delete-note` - preview-first batch deletion with automatic note-link and owned-asset follow-up
 
 ### Automatic follow-up
-- `move-note` and `bulk-move-note` rewrite supported internal note links that pointed at the moved note.
-- `move-note` and `bulk-move-note` also move asset files that are referenced only by the moved note and live under the moved note's source folder.
-- `delete-note` and `bulk-delete-note` rewrite supported internal note links in surviving notes so they no longer point at deleted notes.
-- `delete-note` and `bulk-delete-note` also delete asset files that were referenced only by the deleted note.
+- `move-note` rewrites supported internal note links that pointed at the moved note.
+- `move-note` also moves asset files that are referenced only by the moved note and live under the moved note's source folder.
+- `delete-note` rewrites supported internal note links in surviving notes so they no longer point at the deleted note.
+- `delete-note` also deletes asset files that were referenced only by the deleted note.
 - Follow-up is internal behavior. There is no separate public audit tool for links or assets.
 
 Examples:

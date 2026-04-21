@@ -22,7 +22,7 @@ function assertDirectoryWithinVault(vaultPath, directory) {
   }
 }
 
-export async function listMarkdownFiles(vaultPath, directory = null) {
+async function listMarkdownFiles(vaultPath, directory = null) {
   assertDirectoryWithinVault(vaultPath, directory);
 
   const searchPattern = directory

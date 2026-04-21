@@ -406,7 +406,7 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
   }
 }
 
-export async function deleteNoteWithFollowup(vaultPath, notePath) {
+async function deleteNoteWithFollowup(vaultPath, notePath) {
   const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 

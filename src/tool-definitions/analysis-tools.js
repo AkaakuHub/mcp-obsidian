@@ -33,42 +33,6 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: TOOL_NAMES.BULK_WRITE_FRONTMATTER,
-    title: 'Bulk Write Frontmatter',
-    description: 'Preview or apply frontmatter updates to many notes. If both `paths` and `directory` are given, explicit `paths` win. Validation happens before writes.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        paths: { type: 'array', items: { type: 'string', pattern: '\\.md$' }, description: 'Explicit list of note paths to update. Takes priority over directory scanning.' },
-        directory: { type: 'string', description: 'Optional vault-relative directory to scan when `paths` is omitted.' },
-        fields: { type: 'object', description: 'Frontmatter keys and values to write.' },
-        merge: { type: 'boolean', default: true, description: 'When true, merge with existing frontmatter. When false, replace it.' },
-        dryRun: { type: 'boolean', default: true, description: 'When true, return planned changes without writing.' },
-        limit: { type: 'integer', default: 100, minimum: 1, maximum: 500, description: 'Maximum number of notes to include when scanning by directory.' }
-      },
-      required: ['fields'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        dryRun: { type: 'boolean' },
-        applied: { type: 'boolean' },
-        validationFailed: { type: 'boolean' },
-        rolledBack: { type: 'boolean' },
-        targetCount: { type: 'integer', minimum: 0 },
-        updatedCount: { type: 'integer', minimum: 0 },
-        errors: { type: 'array' },
-        rollbackErrors: { type: 'array' },
-        results: { type: 'array' }
-      },
-      required: ['dryRun', 'applied', 'validationFailed', 'targetCount', 'updatedCount', 'errors', 'results'],
-      additionalProperties: false
-    }
-  },
-  {
     name: TOOL_NAMES.EXTRACT_TASKS,
     title: 'Extract Tasks',
     description: 'Extract markdown tasks across the vault with completion state, due dates, and per-note task summaries.',
@@ -94,52 +58,6 @@ export const analysisToolDefinitions = [
         pagination: { type: 'object' }
       },
       required: ['tasks', 'count', 'total', 'summaryByNote', 'pagination'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: TOOL_NAMES.BULK_MOVE_NOTE,
-    title: 'Bulk Move Note',
-    description: 'Preview or apply a batch of note moves with upfront validation and rollback attempts if a write fails mid-run. Each moved note follows owned asset files and rewrites supported internal note links that pointed to it.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        moves: {
-          type: 'array',
-          minItems: 1,
-          items: {
-            type: 'object',
-            properties: {
-              sourcePath: { type: 'string', minLength: 1, pattern: '\\.md$' },
-              destinationPath: { type: 'string', minLength: 1, pattern: '\\.md$' }
-            },
-            required: ['sourcePath', 'destinationPath'],
-            additionalProperties: false
-          },
-          description: 'List of note moves to validate or apply.'
-        },
-        overwrite: { type: 'boolean', default: false, description: 'Replace existing destination notes when true.' },
-        dryRun: { type: 'boolean', default: true, description: 'When true, validate and preview without moving files.' }
-      },
-      required: ['moves'],
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        dryRun: { type: 'boolean' },
-        applied: { type: 'boolean' },
-        validationFailed: { type: 'boolean' },
-        rolledBack: { type: 'boolean' },
-        moveCount: { type: 'integer', minimum: 0 },
-        movedCount: { type: 'integer', minimum: 0 },
-        errors: { type: 'array' },
-        rollbackErrors: { type: 'array' },
-        results: { type: 'array' }
-      },
-      required: ['dryRun', 'applied', 'validationFailed', 'rolledBack', 'moveCount', 'movedCount', 'errors', 'rollbackErrors', 'results'],
       additionalProperties: false
     }
   },
@@ -230,50 +148,6 @@ export const analysisToolDefinitions = [
         changes: { type: 'array' }
       },
       required: ['path', 'dryRun', 'written', 'mode', 'beforeFrontmatterTags', 'afterFrontmatterTags', 'inlineTagsDetected', 'addedTags', 'removedTags', 'changes'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: TOOL_NAMES.BULK_DELETE_NOTE,
-    title: 'Bulk Delete Note',
-    description: 'Preview or apply deletion of many notes. Each deleted note removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at deleted notes.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        paths: { type: 'array', items: { type: 'string', pattern: '\\.md$' }, description: 'Explicit note paths to delete. Takes priority over directory scanning.' },
-        directory: { type: 'string', description: 'Optional vault-relative directory to delete from when `paths` is omitted.' },
-        dryRun: { type: 'boolean', default: true, description: 'When true, validate and preview without deleting.' }
-      },
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        dryRun: { type: 'boolean' },
-        applied: { type: 'boolean' },
-        validationFailed: { type: 'boolean' },
-        targetCount: { type: 'integer', minimum: 0 },
-        deletedCount: { type: 'integer', minimum: 0 },
-        deletedAssetCount: { type: 'integer', minimum: 0 },
-        errors: { type: 'array' },
-        results: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              path: { type: 'string' },
-              status: { type: 'string', enum: ['planned', 'deleted', 'failed'] },
-              assetPaths: { type: 'array', items: { type: 'string' } },
-              errors: { type: 'array', items: { type: 'string' } }
-            },
-            required: ['path', 'status', 'assetPaths', 'errors'],
-            additionalProperties: false
-          }
-        }
-      },
-      required: ['dryRun', 'applied', 'validationFailed', 'targetCount', 'deletedCount', 'deletedAssetCount', 'errors', 'results'],
       additionalProperties: false
     }
   }

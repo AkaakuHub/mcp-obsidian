@@ -13,12 +13,9 @@ vi.mock('../src/tools.js', () => ({
 
 vi.mock('../src/analysis-tools.js', () => ({
   writeFrontmatter: vi.fn(),
-  bulkUpdateFrontmatter: vi.fn(),
   extractTasks: vi.fn(),
-  moveMany: vi.fn(),
   listTags: vi.fn(),
-  writeTags: vi.fn(),
-  bulkDeleteNote: vi.fn()
+  writeTags: vi.fn()
 }));
 
 import { createToolHandlerMap } from '../src/tool-handler-map.js';
@@ -95,41 +92,12 @@ const outputSamples = {
     before: { status: 'todo' },
     after: { status: 'doing' }
   },
-  [TOOL_NAMES.BULK_WRITE_FRONTMATTER]: {
-    dryRun: true,
-    applied: false,
-    validationFailed: false,
-    rolledBack: true,
-    targetCount: 2,
-    updatedCount: 2,
-    errors: [],
-    rollbackErrors: [],
-    results: [{
-      path: 'a.md',
-      dryRun: true,
-      written: false,
-      changes: [{ key: 'area', before: null, after: 'work' }],
-      before: {},
-      after: { area: 'work' }
-    }]
-  },
   [TOOL_NAMES.EXTRACT_TASKS]: {
     tasks: [{ path: 'note.md', line: 3, text: 'todo', completed: false, due: null }],
     count: 1,
     total: 1,
     summaryByNote: [{ path: 'note.md', total: 1, open: 1, completed: 0, dueCount: 0 }],
     pagination: { total: 1, returned: 1, limit: 500, offset: 0, hasMore: false }
-  },
-  [TOOL_NAMES.BULK_MOVE_NOTE]: {
-    dryRun: true,
-    applied: false,
-    validationFailed: false,
-    rolledBack: false,
-    moveCount: 2,
-    movedCount: 0,
-    errors: [],
-    rollbackErrors: [],
-    results: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md', resolvedSourcePath: 'a.md', status: 'planned', errors: [] }]
   },
   [TOOL_NAMES.LIST_TAGS]: {
     tags: [{ tag: 'project', count: 2, notes: ['a.md', 'b.md'] }],
@@ -147,16 +115,6 @@ const outputSamples = {
     addedTags: ['urgent'],
     removedTags: [],
     changes: [{ key: 'tags', before: ['project'], after: ['project', 'urgent'] }]
-  },
-  [TOOL_NAMES.BULK_DELETE_NOTE]: {
-    dryRun: true,
-    applied: false,
-    validationFailed: false,
-    targetCount: 1,
-    deletedCount: 0,
-    deletedAssetCount: 0,
-    errors: [],
-      results: [{ path: 'a.md', status: 'planned', assetPaths: ['assets/a.png'], errors: [] }]
   }
 };
 
@@ -169,12 +127,9 @@ const toolArgs = {
   [TOOL_NAMES.MOVE_NOTE]: { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   [TOOL_NAMES.DELETE_NOTE]: { path: 'note.md' },
   [TOOL_NAMES.WRITE_FRONTMATTER]: { path: 'note.md', fields: { status: 'doing' } },
-  [TOOL_NAMES.BULK_WRITE_FRONTMATTER]: { fields: { area: 'work' } },
   [TOOL_NAMES.EXTRACT_TASKS]: {},
-  [TOOL_NAMES.BULK_MOVE_NOTE]: { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] },
   [TOOL_NAMES.LIST_TAGS]: {},
-  [TOOL_NAMES.WRITE_TAGS]: { path: 'note.md', tags: ['urgent'], mode: 'add' },
-  [TOOL_NAMES.BULK_DELETE_NOTE]: { paths: ['a.md'], dryRun: true }
+  [TOOL_NAMES.WRITE_TAGS]: { path: 'note.md', tags: ['urgent'], mode: 'add' }
 };
 
 describe('tool contracts', () => {
@@ -191,12 +146,9 @@ describe('tool contracts', () => {
     tools.moveNote.mockResolvedValue(outputSamples[TOOL_NAMES.MOVE_NOTE]);
     tools.deleteNote.mockResolvedValue('note.md');
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples[TOOL_NAMES.WRITE_FRONTMATTER]);
-    analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_WRITE_FRONTMATTER]);
     analysisTools.extractTasks.mockResolvedValue(outputSamples[TOOL_NAMES.EXTRACT_TASKS]);
-    analysisTools.moveMany.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_MOVE_NOTE]);
     analysisTools.listTags.mockResolvedValue(outputSamples[TOOL_NAMES.LIST_TAGS]);
     analysisTools.writeTags.mockResolvedValue(outputSamples[TOOL_NAMES.WRITE_TAGS]);
-    analysisTools.bulkDeleteNote.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_DELETE_NOTE]);
   });
 
   for (const toolDefinition of toolDefinitions) {
