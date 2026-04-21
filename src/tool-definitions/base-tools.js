@@ -167,7 +167,7 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.MOVE_NOTE,
     title: 'Move Note',
-    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault. This automatically follows owned asset files and rewrites supported internal note links that pointed to the moved note.',
+    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault. This automatically follows owned asset files and rewrites supported internal note links that pointed to the moved note. Follow-up writes are best-effort and are not applied transactionally with the rename.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -194,7 +194,7 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.DELETE_NOTE,
     title: 'Delete Note',
-    description: 'Delete a markdown note by vault-relative path. This also removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at the deleted note.',
+    description: 'Delete a markdown note by vault-relative path. This also removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at the deleted note. Follow-up writes are best-effort and are not applied transactionally with the delete.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',

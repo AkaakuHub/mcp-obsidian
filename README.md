@@ -199,6 +199,7 @@ Move or rename a note to a new vault-relative path.
 - Returns both the resolved source path and destination path
 - Follows owned asset references for the moved note and updates those asset paths when needed
 - Rewrites supported internal note links that pointed at the moved note
+- Follow-up writes are best-effort and are not applied transactionally with the rename
 
 ### delete-note
 Delete a note from your vault.
@@ -206,12 +207,11 @@ Delete a note from your vault.
 - Path security checks
 - Rewrites supported internal note links in surviving notes so they no longer point at the deleted note
 - Deletes asset files that were referenced only by the deleted note
+- Follow-up writes are best-effort and are not applied transactionally with the delete
 
 ## Organization Tools
 
 These tools are aimed at vault cleanup, inventory, and preview-first note updates.
-
-### Structure and note inspection
 
 ### Frontmatter
 - `write-frontmatter` - single-note frontmatter update with `dryRun`
@@ -227,20 +227,25 @@ Examples:
 ### Tasks
 - `extract-tasks` - vault-wide task extraction with due-date detection
 
+Task example:
+```json
+{ "directory": "Projects", "includeCompleted": false, "limit": 200 }
+```
+
+Tag examples:
+```json
+{ "directory": "Projects" }
+```
+```json
+{ "notePath": "Projects/alpha.md" }
+```
+
 ### Automatic follow-up
 - `move-note` rewrites supported internal note links that pointed at the moved note.
 - `move-note` also moves asset files that are referenced only by the moved note and live under the moved note's source folder.
 - `delete-note` rewrites supported internal note links in surviving notes so they no longer point at the deleted note.
 - `delete-note` also deletes asset files that were referenced only by the deleted note.
 - Follow-up is internal behavior. There is no separate public audit tool for links or assets.
-
-Examples:
-```json
-{ "directory": "Projects", "includeCompleted": false, "limit": 200 }
-```
-```json
-{ "directory": "Projects" }
-```
 
 ## Security Features
 
