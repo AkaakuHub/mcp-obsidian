@@ -467,5 +467,138 @@ describe('Tools module', () => {
       expect(after.notes[0].path).toBe('archive/source.md');
       expect(glob).toHaveBeenCalledTimes(2);
     });
+
+    it('should move note-owned assets under the source folder and rewrite vault-relative embeds', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (
+          targetPath === '/test/vault/projects/note.md' ||
+          targetPath === '/test/vault/projects/attachments/image.png'
+        ) {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return ['/test/vault/projects/note.md'];
+        }
+        return [];
+      });
+      readFile.mockResolvedValue('![[projects/attachments/image.png]]');
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+      writeFile.mockResolvedValue();
+
+      const result = await moveNote(mockVaultPath, 'projects/note.md', 'archive/note.md');
+
+      expect(rename).toHaveBeenCalledWith('/test/vault/projects/note.md', '/test/vault/archive/note.md');
+      expect(rename).toHaveBeenCalledWith('/test/vault/projects/attachments/image.png', '/test/vault/archive/attachments/image.png');
+      expect(writeFile).toHaveBeenCalledWith('/test/vault/archive/note.md', '![[archive/attachments/image.png]]', 'utf-8');
+      expect(result).toEqual({
+        fromPath: 'projects/note.md',
+        path: 'archive/note.md',
+        status: 'moved'
+      });
+    });
+
+    it('should move uniquely referenced bare-filename assets without rewriting the note body', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (
+          targetPath === '/test/vault/trips/day.md' ||
+          targetPath === '/test/vault/trips/attachments/img.png'
+        ) {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return ['/test/vault/trips/day.md'];
+        }
+        if (pattern === '/test/vault/**/img.png') {
+          return ['/test/vault/trips/attachments/img.png'];
+        }
+        return [];
+      });
+      readFile.mockResolvedValue('![[img.png]]');
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'trips/day.md', 'archive/day.md');
+
+      expect(rename).toHaveBeenCalledWith('/test/vault/trips/day.md', '/test/vault/archive/day.md');
+      expect(rename).toHaveBeenCalledWith('/test/vault/trips/attachments/img.png', '/test/vault/archive/attachments/img.png');
+      expect(writeFile).not.toHaveBeenCalled();
+    });
+
+    it('should keep shared parent-folder attachments in place and rewrite bare embeds to explicit paths', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/tasks/dev/note.md') {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/img.png') {
+          return ['/test/vault/tasks/attachments/img.png'];
+        }
+        return [];
+      });
+      readFile.mockResolvedValue('![[img.png]]');
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+      writeFile.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'tasks/dev/note.md', 'archive/note.md');
+
+      expect(rename).toHaveBeenCalledTimes(1);
+      expect(rename).toHaveBeenCalledWith('/test/vault/tasks/dev/note.md', '/test/vault/archive/note.md');
+      expect(writeFile).toHaveBeenCalledWith('/test/vault/archive/note.md', '![[tasks/attachments/img.png]]', 'utf-8');
+    });
+
+    it('should preserve explicit vault-relative asset paths for shared assets without rewriting', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (
+          targetPath === '/test/vault/tasks/dev/note.md' ||
+          targetPath === '/test/vault/tasks/shared/attachments/img.png'
+        ) {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return [
+            '/test/vault/tasks/dev/note.md',
+            '/test/vault/tasks/other.md'
+          ];
+        }
+        return [];
+      });
+      readFile.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/tasks/dev/note.md') {
+          return '![[tasks/shared/attachments/img.png]]';
+        }
+        if (targetPath === '/test/vault/tasks/other.md') {
+          return '![[tasks/shared/attachments/img.png]]';
+        }
+        return '';
+      });
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'tasks/dev/note.md', 'archive/note.md');
+
+      expect(rename).toHaveBeenCalledTimes(1);
+      expect(writeFile).not.toHaveBeenCalled();
+    });
   });
 });

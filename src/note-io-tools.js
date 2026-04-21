@@ -10,6 +10,11 @@ import { searchFilenamesWithSnapshot, searchVaultWithSnapshot } from './search-t
 import { paginateArray } from './search.js';
 import { flattenFolderTree } from './reorganization-core.js';
 import {
+  executeNoteAssetMoves,
+  planNoteAssetMoves,
+  rewriteMovedNoteAssets
+} from './note-asset-moves.js';
+import {
   validatePathWithinBase,
   validateMarkdownExtension,
   validateRequiredParameters,
@@ -221,6 +226,8 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
     });
   }
 
+  const assetPlan = await planNoteAssetMoves(vaultPath, fullSourcePath, fullDestinationPath);
+
   try {
     await access(fullDestinationPath, constants.F_OK);
     if (!overwrite) {
@@ -241,9 +248,14 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
     }
   }
 
+  let noteMoved = false;
+
   try {
     await mkdir(path.dirname(fullDestinationPath), { recursive: true });
     await rename(fullSourcePath, fullDestinationPath);
+    noteMoved = true;
+    await executeNoteAssetMoves(vaultPath, assetPlan, overwrite);
+    await rewriteMovedNoteAssets(fullDestinationPath, assetPlan);
     invalidateSnapshotsForVault(vaultPath);
     return {
       fromPath: resolvedSourcePath,
@@ -260,6 +272,15 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
         destinationPath
       });
     }
+
+    if (noteMoved) {
+      try {
+        await rename(fullDestinationPath, fullSourcePath);
+      } catch {
+        // Best-effort rollback.
+      }
+    }
+
     throw Errors.internalError(`Failed to move note: ${error.message}`, {
       sourcePath: resolvedSourcePath,
       destinationPath
