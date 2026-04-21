@@ -92,7 +92,7 @@ const outputSamples = {
     before: { status: 'todo' },
     after: { status: 'doing' }
   },
-  'bulk-update-frontmatter': {
+  'bulk-write-frontmatter': {
     dryRun: true,
     applied: false,
     validationFailed: false,
@@ -132,7 +132,7 @@ const outputSamples = {
     orphans: [],
     hubs: []
   },
-  'move-many': {
+  'bulk-move-note': {
     dryRun: true,
     applied: false,
     validationFailed: false,
@@ -154,10 +154,10 @@ const toolArgs = {
   'move-note': { sourcePath: 'note.md', destinationPath: 'areas/note.md' },
   'delete-note': { path: 'note.md' },
   'write-frontmatter': { path: 'note.md', fields: { status: 'doing' } },
-  'bulk-update-frontmatter': { fields: { area: 'work' } },
+  'bulk-write-frontmatter': { fields: { area: 'work' } },
   'extract-tasks': {},
   'analyze-links': {},
-  'move-many': { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] }
+  'bulk-move-note': { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] }
 };
 
 describe('tool contracts', () => {
@@ -174,10 +174,10 @@ describe('tool contracts', () => {
     tools.moveNote.mockResolvedValue(outputSamples['move-note']);
     tools.deleteNote.mockResolvedValue('note.md');
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples['write-frontmatter']);
-    analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-update-frontmatter']);
+    analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples['bulk-write-frontmatter']);
     analysisTools.extractTasks.mockResolvedValue(outputSamples['extract-tasks']);
     analysisTools.analyzeLinks.mockResolvedValue(outputSamples['analyze-links']);
-    analysisTools.moveMany.mockResolvedValue(outputSamples['move-many']);
+    analysisTools.moveMany.mockResolvedValue(outputSamples['bulk-move-note']);
   });
 
   for (const toolDefinition of toolDefinitions) {

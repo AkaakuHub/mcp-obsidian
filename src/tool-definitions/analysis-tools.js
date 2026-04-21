@@ -31,8 +31,8 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'bulk-update-frontmatter',
-    title: 'Bulk Update Frontmatter',
+    name: 'bulk-write-frontmatter',
+    title: 'Bulk Write Frontmatter',
     description: 'Preview or apply frontmatter updates to many notes. If both `paths` and `directory` are given, explicit `paths` win. Validation happens before writes.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -142,8 +142,8 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: 'move-many',
-    title: 'Move Many',
+    name: 'bulk-move-note',
+    title: 'Bulk Move Note',
     description: 'Preview or apply a batch of note moves with upfront validation and rollback attempts if a write fails mid-run.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',

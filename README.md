@@ -203,7 +203,7 @@ Delete a note from your vault.
 - Validated deletion with proper path checks
 - Path security checks
 
-### move-many
+### bulk-move-note
 Preview or apply multiple note moves in one call.
 - `dryRun: true` is the safe default
 - Validates all moves before writing
@@ -217,7 +217,7 @@ These tools are aimed at vault cleanup, inventory, and preview-first bulk operat
 
 ### Frontmatter and bulk edits
 - `write-frontmatter` - single-note frontmatter update with `dryRun`
-- `bulk-update-frontmatter` - multi-note frontmatter updates with `dryRun`, per-note diffs, and target counts
+- `bulk-write-frontmatter` - multi-note frontmatter updates with `dryRun`, per-note diffs, and target counts
 
 Examples:
 ```json
@@ -233,7 +233,7 @@ Examples:
 ### Tasks and links
 - `extract-tasks` - vault-wide task extraction with due-date detection
 - `analyze-links` - backlinks, outbound links, orphan notes, and hub notes
-- `move-many` - preview-first batch move execution with rollback attempts
+- `bulk-move-note` - preview-first batch move execution with rollback attempts
 
 Examples:
 ```json

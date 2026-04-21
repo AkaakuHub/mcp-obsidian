@@ -11,7 +11,7 @@ export function createAnalysisHandlers(vaultPath) {
       const result = await writeFrontmatter(vaultPath, args.path, args.fields, { merge: args.merge, dryRun: args.dryRun });
       return structuredResponse(result, result.dryRun ? `Dry-run frontmatter diff for ${args.path}` : `Updated frontmatter for ${args.path}`, createMetadata(startTime, { tool: toolName, dryRun: result.dryRun }));
     },
-    'bulk-update-frontmatter': async (args, startTime, toolName) => {
+    'bulk-write-frontmatter': async (args, startTime, toolName) => {
       const result = await bulkUpdateFrontmatter(vaultPath, args);
       const description = result.validationFailed
         ? `Validation failed for ${result.errors.length} targets; no changes were applied`
@@ -30,7 +30,7 @@ export function createAnalysisHandlers(vaultPath) {
       const result = await analyzeLinks(vaultPath, args);
       return structuredResponse(result, args.notePath ? `Analyzed links for ${args.notePath}` : `Analyzed link graph for ${result.notes.length} notes`, createMetadata(startTime, { tool: toolName }));
     },
-    'move-many': async (args, startTime, toolName) => {
+    'bulk-move-note': async (args, startTime, toolName) => {
       const result = await moveMany(vaultPath, args);
       const description = result.validationFailed
         ? `Batch move validation failed for ${result.errors.length} items`

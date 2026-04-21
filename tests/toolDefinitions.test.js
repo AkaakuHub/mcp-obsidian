@@ -12,10 +12,10 @@ describe('Tool Definitions', () => {
     expect(toolNames).toContain('move-note');
     expect(toolNames).toContain('delete-note');
     expect(toolNames).toContain('write-frontmatter');
-    expect(toolNames).toContain('bulk-update-frontmatter');
+    expect(toolNames).toContain('bulk-write-frontmatter');
     expect(toolNames).toContain('extract-tasks');
     expect(toolNames).toContain('analyze-links');
-    expect(toolNames).toContain('move-many');
+    expect(toolNames).toContain('bulk-move-note');
   });
 
   it('should have valid schemas for all tools', () => {
@@ -51,7 +51,7 @@ describe('Tool Definitions', () => {
     const filenameSearchTool = toolDefinitions.find(t => t.name === 'search-by-filename');
     expect(filenameSearchTool.inputSchema.required).toEqual(['query']);
 
-    const moveManyTool = toolDefinitions.find(t => t.name === 'move-many');
+    const moveManyTool = toolDefinitions.find(t => t.name === 'bulk-move-note');
     expect(moveManyTool.inputSchema.required).toEqual(['moves']);
   });
 });
