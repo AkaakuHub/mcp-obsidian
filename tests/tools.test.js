@@ -513,6 +513,52 @@ describe('Tools module', () => {
       expect(rename).not.toHaveBeenCalled();
     });
 
+    it('should clean up owned assets from an overwritten destination note', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (
+          targetPath === '/test/vault/source.md' ||
+          targetPath === '/test/vault/archive/source.md' ||
+          targetPath === '/test/vault/archive/assets/old.png'
+        ) {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return [
+            '/test/vault/source.md',
+            '/test/vault/archive/source.md'
+          ];
+        }
+        if (pattern === '/test/vault/**/old.png') {
+          return ['/test/vault/archive/assets/old.png'];
+        }
+        return [];
+      });
+      readFile.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return '# Source';
+        }
+        if (targetPath === '/test/vault/archive/source.md') {
+          return '![[archive/assets/old.png]]';
+        }
+        return '';
+      });
+      mkdir.mockResolvedValue();
+      unlink.mockResolvedValue();
+      rm.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'source.md', 'archive/source.md', true);
+
+      expect(unlink).toHaveBeenCalledWith('/test/vault/archive/source.md');
+      expect(rm).toHaveBeenCalledWith('/test/vault/archive/assets/old.png');
+      expect(rename).toHaveBeenCalledWith('/test/vault/source.md', '/test/vault/archive/source.md');
+    });
+
     it('should invalidate cached snapshots after moving', async () => {
       let notePath = '/test/vault/source.md';
       glob.mockImplementation(async (pattern) => {
@@ -718,6 +764,40 @@ describe('Tools module', () => {
         'Wiki [[archive/source|Source Alias]] and [Source](archive/source.md)',
         'utf-8'
       );
+    });
+
+    it('should leave ambiguous bare note links unchanged during follow-up', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/folder-a/source.md') {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockResolvedValue([
+        '/test/vault/folder-a/source.md',
+        '/test/vault/folder-b/source.md',
+        '/test/vault/ref.md'
+      ]);
+      readFile.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/folder-a/source.md') {
+          return '# Source A';
+        }
+        if (targetPath === '/test/vault/folder-b/source.md') {
+          return '# Source B';
+        }
+        if (targetPath === '/test/vault/ref.md') {
+          return 'See [[source]]';
+        }
+        return '';
+      });
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'folder-a/source.md', 'archive/source.md');
+
+      expect(writeFile).not.toHaveBeenCalledWith('/test/vault/ref.md', expect.any(String), 'utf-8');
     });
   });
 });

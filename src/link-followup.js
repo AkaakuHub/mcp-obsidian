@@ -26,6 +26,8 @@ function buildAliasMap(notes) {
 
     if (!aliasMap.has(stem)) {
       aliasMap.set(stem, note.path);
+    } else if (aliasMap.get(stem) !== note.path) {
+      aliasMap.set(stem, null);
     }
   }
 
@@ -33,7 +35,7 @@ function buildAliasMap(notes) {
 }
 
 function resolveNotePath(aliasMap, link) {
-  return aliasMap.get(normalizeLinkTarget(link.decodedTargetPath)) || null;
+  return aliasMap.get(normalizeLinkTarget(link.decodedTargetPath)) ?? null;
 }
 
 function collectFollowupReplacements(notes, aliasMap, targetPath, replacementFactory, destinationPath = null) {

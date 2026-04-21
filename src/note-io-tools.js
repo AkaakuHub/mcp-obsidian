@@ -345,6 +345,7 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
 
   const assetPlan = await planAssetFollowupForMove(vaultPath, fullSourcePath, fullDestinationPath);
   const linkPlan = await planLinkFollowupForMove(vaultPath, resolvedSourcePath, destinationPath);
+  let overwriteDestinationAssetPlan = null;
 
   try {
     await access(fullDestinationPath, constants.F_OK);
@@ -353,7 +354,9 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
         path: destinationPath
       });
     }
+    overwriteDestinationAssetPlan = await planAssetFollowupForDelete(vaultPath, fullDestinationPath);
     await unlink(fullDestinationPath);
+    await applyAssetFollowupForDelete(overwriteDestinationAssetPlan);
   } catch (error) {
     if (error instanceof MCPError) {
       throw error;
