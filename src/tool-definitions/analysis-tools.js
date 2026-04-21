@@ -4,7 +4,7 @@ export const analysisToolDefinitions = [
   {
     name: TOOL_NAMES.WRITE_FRONTMATTER,
     title: 'Write Frontmatter',
-    description: 'Preview or apply a frontmatter update for one note. `dryRun: true` is the safe default.',
+    description: 'Preview or apply a frontmatter update for one note. `dryRun: true` is the safe default. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -119,7 +119,7 @@ export const analysisToolDefinitions = [
   {
     name: TOOL_NAMES.WRITE_TAGS,
     title: 'Write Tags',
-    description: 'Preview or apply tag updates for one note by editing only `frontmatter.tags`. Inline `#tags` in the note body are never rewritten and are reported separately for awareness.',
+    description: 'Preview or apply tag updates for one note by editing only `frontmatter.tags`. Inline `#tags` in the note body are never rewritten and are reported separately for awareness. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',

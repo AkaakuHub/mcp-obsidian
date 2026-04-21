@@ -122,7 +122,7 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.UPDATE_NOTE,
     title: 'Update Note',
-    description: 'Create, replace, append to, or patch part of a markdown note. Use `replace` for full writes, `append` for tail additions, and `patch` for exact substring edits.',
+    description: 'Create, replace, append to, or patch part of a markdown note. Use `replace` for full writes, `append` for tail additions, and `patch` for exact substring edits. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -167,7 +167,7 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.MOVE_NOTE,
     title: 'Move Note',
-    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault. This automatically follows owned asset files and rewrites supported internal note links that pointed to the moved note. Follow-up writes are best-effort and are not applied transactionally with the rename.',
+    description: 'Move or rename a markdown note to a new vault-relative path. Source accepts an exact path or a unique filename resolved anywhere in the vault. This automatically follows owned asset files and rewrites supported internal note links that pointed to the moved note. Follow-up writes are best-effort and are not applied transactionally with the rename. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -194,7 +194,7 @@ export const baseToolDefinitions = [
   {
     name: TOOL_NAMES.DELETE_NOTE,
     title: 'Delete Note',
-    description: 'Delete a markdown note by vault-relative path. This also removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at the deleted note. Follow-up writes are best-effort and are not applied transactionally with the delete.',
+    description: 'Delete a markdown note by vault-relative path. This also removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at the deleted note. Follow-up writes are best-effort and are not applied transactionally with the delete. For multi-note work, repeat this single-note tool from the MCP client; no bulk variant is published.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',

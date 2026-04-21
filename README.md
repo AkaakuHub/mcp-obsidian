@@ -106,6 +106,11 @@ You should see `obsidian` in the list of available MCP servers.
 
 ## Available Tools
 
+### About Batch Operations
+- This server intentionally does not publish `bulk-*` MCP tools.
+- When an AI client needs to update, move, or delete many notes, it should repeat the single-note tools from the client side instead of looking for a batch endpoint.
+- That keeps the public MCP surface smaller and makes execution planning explicit in the MCP client.
+
 ### search-vault
 Search for content across vault notes within the current scan scope.
 
