@@ -1,5 +1,5 @@
 import { createMetadata, structuredResponse } from '../response-formatter.js';
-import { analyzeLinks, auditAssets, bulkDeleteNote, bulkUpdateFrontmatter, extractTasks, listTags, moveMany, writeFrontmatter, writeTags } from '../analysis-tools.js';
+import { bulkDeleteNote, bulkUpdateFrontmatter, extractTasks, listTags, moveMany, writeFrontmatter, writeTags } from '../analysis-tools.js';
 import { TOOL_NAMES } from '../tool-names.js';
 
 function formatLineList(items, emptyMessage) {
@@ -26,10 +26,6 @@ export function createAnalysisHandlers(vaultPath) {
     [TOOL_NAMES.EXTRACT_TASKS]: async (args, startTime, toolName) => {
       const result = await extractTasks(vaultPath, args);
       return structuredResponse(result, `Extracted ${result.total} tasks`, createMetadata(startTime, { tool: toolName }));
-    },
-    [TOOL_NAMES.ANALYZE_LINKS]: async (args, startTime, toolName) => {
-      const result = await analyzeLinks(vaultPath, args);
-      return structuredResponse(result, args.notePath ? `Analyzed links for ${args.notePath}` : `Analyzed link graph for ${result.notes.length} notes`, createMetadata(startTime, { tool: toolName }));
     },
     [TOOL_NAMES.BULK_MOVE_NOTE]: async (args, startTime, toolName) => {
       const result = await moveMany(vaultPath, args);
@@ -67,13 +63,5 @@ export function createAnalysisHandlers(vaultPath) {
             : `Deleted ${result.deletedCount} notes with ${result.errors.length} errors`;
       return structuredResponse(result, description, createMetadata(startTime, { tool: toolName, dryRun: result.dryRun, applied: result.applied }));
     },
-    [TOOL_NAMES.AUDIT_ASSETS]: async (args, startTime, toolName) => {
-      const result = await auditAssets(vaultPath, args);
-      return structuredResponse(
-        result,
-        `Audited ${result.assetCount} assets across ${result.noteCount} notes`,
-        createMetadata(startTime, { tool: toolName })
-      );
-    }
   };
 }

@@ -3,9 +3,7 @@ import { constants } from 'fs';
 import { glob } from 'glob';
 import path from 'path';
 import { extractInternalAssetLinks } from './asset-links.js';
-import { Errors } from './errors.js';
 import { getVaultSnapshot } from './vault-analysis.js';
-import { validatePathWithinBase } from './validation.js';
 
 export function normalizePath(value) {
   return value.replace(/\\/g, '/');
@@ -17,27 +15,6 @@ export async function pathExists(targetPath) {
     return true;
   } catch {
     return false;
-  }
-}
-
-function isNoteInDirectory(notePath, directory) {
-  if (!directory) {
-    return true;
-  }
-
-  const normalizedDirectory = normalizePath(directory).replace(/\/+$/, '');
-  const normalizedNotePath = normalizePath(notePath);
-  return normalizedNotePath === normalizedDirectory || normalizedNotePath.startsWith(`${normalizedDirectory}/`);
-}
-
-function assertDirectoryWithinVault(vaultPath, directory) {
-  if (!directory) {
-    return;
-  }
-
-  const pathValidation = validatePathWithinBase(vaultPath, directory);
-  if (!pathValidation.valid) {
-    throw Errors.accessDenied(pathValidation.error, { path: directory });
   }
 }
 
@@ -107,69 +84,19 @@ export async function collectReferenceOwners(vaultPath, trackedAssetPaths) {
   return owners;
 }
 
-export async function collectAssetReferences(vaultPath, options = {}) {
-  const { directory = null } = options;
-  assertDirectoryWithinVault(vaultPath, directory);
+export function isAssetOwnedOnlyBy(owners, assetFullPath, ownerPaths) {
+  const expectedOwners = ownerPaths instanceof Set ? ownerPaths : new Set(ownerPaths);
+  const actualOwners = owners.get(assetFullPath) ?? new Set();
 
-  const snapshot = await getVaultSnapshot(vaultPath, { includeContent: true });
-  const noteReferences = [];
-  const owners = new Map();
-  const missingAssets = [];
+  if (actualOwners.size !== expectedOwners.size) {
+    return false;
+  }
 
-  for (const note of snapshot.notes) {
-    const noteFullPath = path.join(vaultPath, note.path);
-    const links = extractInternalAssetLinks(note.content || '');
-    const resolvedLinks = [];
-
-    for (const link of links) {
-      const resolved = await resolveAssetCandidate(vaultPath, noteFullPath, link);
-      if (!resolved) {
-        if (isNoteInDirectory(note.path, directory)) {
-          missingAssets.push({
-            notePath: note.path,
-            target: link.rawTarget,
-            format: link.format
-          });
-        }
-        continue;
-      }
-
-      resolvedLinks.push({
-        ...link,
-        fullPath: resolved.fullPath,
-        style: resolved.style
-      });
-
-      const currentOwners = owners.get(resolved.fullPath) ?? new Set();
-      currentOwners.add(note.path);
-      owners.set(resolved.fullPath, currentOwners);
-    }
-
-    if (isNoteInDirectory(note.path, directory)) {
-      noteReferences.push({
-        path: note.path,
-        fullPath: noteFullPath,
-        assetLinks: resolvedLinks
-      });
+  for (const ownerPath of expectedOwners) {
+    if (!actualOwners.has(ownerPath)) {
+      return false;
     }
   }
 
-  return {
-    noteReferences,
-    owners,
-    missingAssets
-  };
-}
-
-export async function listAssetFiles(vaultPath, directory = null) {
-  assertDirectoryWithinVault(vaultPath, directory);
-
-  const searchPattern = directory
-    ? path.join(vaultPath, directory, '**/*')
-    : path.join(vaultPath, '**/*');
-
-  const files = await glob(searchPattern, { nodir: true });
-  return files
-    .filter((file) => path.extname(file).toLowerCase() !== '.md')
-    .sort();
+  return true;
 }

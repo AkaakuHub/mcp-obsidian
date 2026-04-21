@@ -15,12 +15,10 @@ vi.mock('../src/analysis-tools.js', () => ({
   writeFrontmatter: vi.fn(),
   bulkUpdateFrontmatter: vi.fn(),
   extractTasks: vi.fn(),
-  analyzeLinks: vi.fn(),
   moveMany: vi.fn(),
   listTags: vi.fn(),
   writeTags: vi.fn(),
-  bulkDeleteNote: vi.fn(),
-  auditAssets: vi.fn()
+  bulkDeleteNote: vi.fn()
 }));
 
 import { createToolHandlerMap } from '../src/tool-handler-map.js';
@@ -122,21 +120,6 @@ const outputSamples = {
     summaryByNote: [{ path: 'note.md', total: 1, open: 1, completed: 0, dueCount: 0 }],
     pagination: { total: 1, returned: 1, limit: 500, offset: 0, hasMore: false }
   },
-  [TOOL_NAMES.ANALYZE_LINKS]: {
-    notes: [{
-      path: 'note.md',
-      outboundCount: 1,
-      inboundCount: 0,
-      outboundLinks: [{ target: 'other', resolvedPath: 'other.md' }],
-      inboundLinks: [],
-      isOrphan: false,
-      isHub: false
-    }],
-    orphanCount: 0,
-    hubCount: 0,
-    orphans: [],
-    hubs: []
-  },
   [TOOL_NAMES.BULK_MOVE_NOTE]: {
     dryRun: true,
     applied: false,
@@ -173,16 +156,7 @@ const outputSamples = {
     deletedCount: 0,
     deletedAssetCount: 0,
     errors: [],
-    results: [{ path: 'a.md', status: 'planned', assetPaths: ['assets/a.png'], errors: [] }]
-  },
-  [TOOL_NAMES.AUDIT_ASSETS]: {
-    assetCount: 2,
-    referencedAssetCount: 1,
-    unreferencedAssets: ['assets/unused.png'],
-    missingAssets: [{ notePath: 'a.md', target: 'assets/missing.png', format: 'wikilink' }],
-    sharedAssets: [],
-    ownedAssetsByNote: [{ notePath: 'a.md', assets: ['assets/a.png'] }],
-    noteCount: 1
+      results: [{ path: 'a.md', status: 'planned', assetPaths: ['assets/a.png'], errors: [] }]
   }
 };
 
@@ -197,12 +171,10 @@ const toolArgs = {
   [TOOL_NAMES.WRITE_FRONTMATTER]: { path: 'note.md', fields: { status: 'doing' } },
   [TOOL_NAMES.BULK_WRITE_FRONTMATTER]: { fields: { area: 'work' } },
   [TOOL_NAMES.EXTRACT_TASKS]: {},
-  [TOOL_NAMES.ANALYZE_LINKS]: {},
   [TOOL_NAMES.BULK_MOVE_NOTE]: { moves: [{ sourcePath: 'a.md', destinationPath: 'archive/a.md' }] },
   [TOOL_NAMES.LIST_TAGS]: {},
   [TOOL_NAMES.WRITE_TAGS]: { path: 'note.md', tags: ['urgent'], mode: 'add' },
-  [TOOL_NAMES.BULK_DELETE_NOTE]: { paths: ['a.md'], dryRun: true },
-  [TOOL_NAMES.AUDIT_ASSETS]: {}
+  [TOOL_NAMES.BULK_DELETE_NOTE]: { paths: ['a.md'], dryRun: true }
 };
 
 describe('tool contracts', () => {
@@ -221,12 +193,10 @@ describe('tool contracts', () => {
     analysisTools.writeFrontmatter.mockResolvedValue(outputSamples[TOOL_NAMES.WRITE_FRONTMATTER]);
     analysisTools.bulkUpdateFrontmatter.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_WRITE_FRONTMATTER]);
     analysisTools.extractTasks.mockResolvedValue(outputSamples[TOOL_NAMES.EXTRACT_TASKS]);
-    analysisTools.analyzeLinks.mockResolvedValue(outputSamples[TOOL_NAMES.ANALYZE_LINKS]);
     analysisTools.moveMany.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_MOVE_NOTE]);
     analysisTools.listTags.mockResolvedValue(outputSamples[TOOL_NAMES.LIST_TAGS]);
     analysisTools.writeTags.mockResolvedValue(outputSamples[TOOL_NAMES.WRITE_TAGS]);
     analysisTools.bulkDeleteNote.mockResolvedValue(outputSamples[TOOL_NAMES.BULK_DELETE_NOTE]);
-    analysisTools.auditAssets.mockResolvedValue(outputSamples[TOOL_NAMES.AUDIT_ASSETS]);
   });
 
   for (const toolDefinition of toolDefinitions) {

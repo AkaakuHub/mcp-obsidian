@@ -98,55 +98,9 @@ export const analysisToolDefinitions = [
     }
   },
   {
-    name: TOOL_NAMES.ANALYZE_LINKS,
-    title: 'Analyze Links',
-    description: 'Inspect link relationships for one note or the whole vault, including backlinks, orphans, and hubs.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        notePath: { type: 'string', pattern: '\\.md$', description: 'Optional specific note path. When omitted, returns the full graph summary.' },
-        directory: { type: 'string', description: 'Optional vault-relative directory to scan.' }
-      },
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      anyOf: [
-        {
-          type: 'object',
-          properties: {
-            path: { type: 'string' },
-            outboundCount: { type: 'integer', minimum: 0 },
-            inboundCount: { type: 'integer', minimum: 0 },
-            outboundLinks: { type: 'array' },
-            inboundLinks: { type: 'array' },
-            isOrphan: { type: 'boolean' },
-            isHub: { type: 'boolean' }
-          },
-          required: ['path', 'outboundCount', 'inboundCount', 'outboundLinks', 'inboundLinks', 'isOrphan', 'isHub'],
-          additionalProperties: false
-        },
-        {
-          type: 'object',
-          properties: {
-            notes: { type: 'array' },
-            orphanCount: { type: 'integer', minimum: 0 },
-            hubCount: { type: 'integer', minimum: 0 },
-            orphans: { type: 'array', items: { type: 'string' } },
-            hubs: { type: 'array', items: { type: 'string' } }
-          },
-          required: ['notes', 'orphanCount', 'hubCount', 'orphans', 'hubs'],
-          additionalProperties: false
-        }
-      ]
-    }
-  },
-  {
     name: TOOL_NAMES.BULK_MOVE_NOTE,
     title: 'Bulk Move Note',
-    description: 'Preview or apply a batch of note moves with upfront validation and rollback attempts if a write fails mid-run.',
+    description: 'Preview or apply a batch of note moves with upfront validation and rollback attempts if a write fails mid-run. Each moved note follows owned asset files and rewrites supported internal note links that pointed to it.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
@@ -282,15 +236,14 @@ export const analysisToolDefinitions = [
   {
     name: TOOL_NAMES.BULK_DELETE_NOTE,
     title: 'Bulk Delete Note',
-    description: 'Preview or apply deletion of many notes. Optional asset cleanup deletes only assets referenced exclusively by the targeted note set; shared assets are left in place.',
+    description: 'Preview or apply deletion of many notes. Each deleted note removes owned asset files and rewrites supported internal note links in surviving notes so they no longer point at deleted notes.',
     inputSchema: {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
         paths: { type: 'array', items: { type: 'string', pattern: '\\.md$' }, description: 'Explicit note paths to delete. Takes priority over directory scanning.' },
         directory: { type: 'string', description: 'Optional vault-relative directory to delete from when `paths` is omitted.' },
-        dryRun: { type: 'boolean', default: true, description: 'When true, validate and preview without deleting.' },
-        deleteOwnedAssets: { type: 'boolean', default: false, description: 'When true, also delete assets whose known note references all come from the targeted note set. Shared assets are not deleted.' }
+        dryRun: { type: 'boolean', default: true, description: 'When true, validate and preview without deleting.' }
       },
       additionalProperties: false
     },
@@ -321,34 +274,6 @@ export const analysisToolDefinitions = [
         }
       },
       required: ['dryRun', 'applied', 'validationFailed', 'targetCount', 'deletedCount', 'deletedAssetCount', 'errors', 'results'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: TOOL_NAMES.AUDIT_ASSETS,
-    title: 'Audit Assets',
-    description: 'Audit vault assets for unreferenced files, missing references, shared assets, and note-owned assets.',
-    inputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        directory: { type: 'string', description: 'Optional vault-relative directory to audit.' }
-      },
-      additionalProperties: false
-    },
-    outputSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        assetCount: { type: 'integer', minimum: 0 },
-        referencedAssetCount: { type: 'integer', minimum: 0 },
-        unreferencedAssets: { type: 'array', items: { type: 'string' } },
-        missingAssets: { type: 'array' },
-        sharedAssets: { type: 'array' },
-        ownedAssetsByNote: { type: 'array' },
-        noteCount: { type: 'integer', minimum: 0 }
-      },
-      required: ['assetCount', 'referencedAssetCount', 'unreferencedAssets', 'missingAssets', 'sharedAssets', 'ownedAssetsByNote', 'noteCount'],
       additionalProperties: false
     }
   }

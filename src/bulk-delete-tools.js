@@ -1,8 +1,8 @@
 import path from 'path';
-import { rm } from 'fs/promises';
 import { Errors } from './errors.js';
-import { collectAssetReferences, normalizePath } from './asset-references.js';
-import { deleteNote, readResolvedNote } from './tools.js';
+import { normalizePath } from './asset-references.js';
+import { deleteNoteWithFollowup, readResolvedNote } from './note-io-tools.js';
+import { planAssetFollowupForDelete } from './asset-followup.js';
 import { listMarkdownFiles } from './vault-analysis.js';
 
 async function resolveTargetPaths(vaultPath, options = {}) {
@@ -28,32 +28,22 @@ async function resolveTargetPaths(vaultPath, options = {}) {
   return files.map((file) => normalizePath(path.relative(vaultPath, file)));
 }
 
-function buildAssetDeletionPlan(targetPaths, noteReferences, owners) {
-  const targetSet = new Set(targetPaths);
-  const plans = new Map(targetPaths.map((targetPath) => [targetPath, new Set()]));
+async function buildDryRunResult(vaultPath, targetPath) {
+  const note = await readResolvedNote(vaultPath, targetPath);
+  const assetPlan = await planAssetFollowupForDelete(vaultPath, path.join(vaultPath, targetPath));
 
-  for (const note of noteReferences) {
-    if (!targetSet.has(note.path)) {
-      continue;
-    }
-
-    for (const link of note.assetLinks) {
-      const noteOwners = owners.get(link.fullPath) ?? new Set();
-      const deletable = [...noteOwners].every((ownerPath) => targetSet.has(ownerPath));
-      if (deletable) {
-        plans.get(note.path).add(link.fullPath);
-      }
-    }
-  }
-
-  return plans;
+  return {
+    path: note.path,
+    status: 'planned',
+    assetPaths: assetPlan.assetPaths
+      .map((assetPath) => normalizePath(path.relative(vaultPath, assetPath)))
+      .sort(),
+    errors: []
+  };
 }
 
 export async function bulkDeleteNote(vaultPath, options = {}) {
-  const {
-    dryRun = true,
-    deleteOwnedAssets = false
-  } = options;
+  const { dryRun = true } = options;
 
   let targetPaths;
   try {
@@ -74,14 +64,13 @@ export async function bulkDeleteNote(vaultPath, options = {}) {
     };
   }
 
-  const { noteReferences, owners } = deleteOwnedAssets
-    ? await collectAssetReferences(vaultPath, {})
-    : { noteReferences: [], owners: new Map() };
-  const assetDeletionPlan = deleteOwnedAssets
-    ? buildAssetDeletionPlan(targetPaths, noteReferences, owners)
-    : new Map(targetPaths.map((targetPath) => [targetPath, new Set()]));
-
   if (dryRun) {
+    const results = [];
+
+    for (const targetPath of targetPaths) {
+      results.push(await buildDryRunResult(vaultPath, targetPath));
+    }
+
     return {
       dryRun: true,
       applied: false,
@@ -90,29 +79,24 @@ export async function bulkDeleteNote(vaultPath, options = {}) {
       deletedCount: 0,
       deletedAssetCount: 0,
       errors: [],
-      results: targetPaths.map((targetPath) => ({
-        path: targetPath,
-        status: 'planned',
-        assetPaths: [...(assetDeletionPlan.get(targetPath) ?? [])]
-          .map((assetPath) => normalizePath(path.relative(vaultPath, assetPath)))
-          .sort(),
-        errors: []
-      }))
+      results
     };
   }
 
-  const deletedPaths = new Set();
   const errors = [];
   const results = [];
+  let deletedCount = 0;
+  let deletedAssetCount = 0;
 
   for (const targetPath of targetPaths) {
     try {
-      await deleteNote(vaultPath, targetPath);
-      deletedPaths.add(targetPath);
+      const result = await deleteNoteWithFollowup(vaultPath, targetPath);
+      deletedCount += 1;
+      deletedAssetCount += result.deletedAssetPaths.length;
       results.push({
-        path: targetPath,
+        path: result.path,
         status: 'deleted',
-        assetPaths: [],
+        assetPaths: result.deletedAssetPaths.sort(),
         errors: []
       });
     } catch (error) {
@@ -129,52 +113,13 @@ export async function bulkDeleteNote(vaultPath, options = {}) {
     }
   }
 
-  const assetPathsToDelete = new Set();
-  if (deleteOwnedAssets) {
-    for (const targetPath of deletedPaths) {
-      for (const assetFullPath of assetDeletionPlan.get(targetPath) ?? []) {
-        const noteOwners = owners.get(assetFullPath) ?? new Set();
-        const deletable = [...noteOwners].every((ownerPath) => deletedPaths.has(ownerPath));
-        if (deletable) {
-          assetPathsToDelete.add(assetFullPath);
-        }
-      }
-    }
-  }
-
-  const deletedAssetPaths = [];
-  for (const assetFullPath of [...assetPathsToDelete].sort()) {
-    const relativePath = normalizePath(path.relative(vaultPath, assetFullPath));
-
-    try {
-      await rm(assetFullPath);
-      deletedAssetPaths.push(relativePath);
-    } catch (error) {
-      errors.push({
-        path: relativePath,
-        error: error.message || String(error)
-      });
-    }
-  }
-
-  for (const result of results) {
-    if (result.status !== 'deleted') {
-      continue;
-    }
-
-    result.assetPaths = [...(assetDeletionPlan.get(result.path) ?? [])]
-      .map((assetPath) => normalizePath(path.relative(vaultPath, assetPath)))
-      .filter((assetPath) => deletedAssetPaths.includes(assetPath))
-      .sort();
-  }
-
   return {
     dryRun: false,
     applied: errors.length === 0,
     validationFailed: false,
     targetCount: targetPaths.length,
-    deletedCount: deletedPaths.size,
-    deletedAssetCount: deletedAssetPaths.length,
+    deletedCount,
+    deletedAssetCount,
     errors,
     results
   };

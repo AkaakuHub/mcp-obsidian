@@ -5,7 +5,7 @@ vi.mock('glob');
 
 import { access, readFile, rm, stat, writeFile } from 'fs/promises';
 import { glob } from 'glob';
-import { analyzeLinks, auditAssets, bulkDeleteNote, bulkUpdateFrontmatter, extractTasks, listTags, writeFrontmatter, writeTags } from '../src/analysis-tools.js';
+import { bulkDeleteNote, bulkUpdateFrontmatter, extractTasks, listTags, writeFrontmatter, writeTags } from '../src/analysis-tools.js';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 
 describe('analysis tools', () => {
@@ -124,7 +124,7 @@ describe('analysis tools', () => {
     expect(result.rollbackErrors).toEqual([{ path: 'a.md', error: 'Rollback failed' }]);
   });
 
-  it('should extract tasks and analyze link graph', async () => {
+  it('should extract tasks', async () => {
     glob.mockResolvedValue([
       '/test/vault/a.md',
       '/test/vault/b.md'
@@ -138,11 +138,8 @@ describe('analysis tools', () => {
     });
 
     const tasks = await extractTasks(vaultPath, {});
-    const links = await analyzeLinks(vaultPath, {});
 
     expect(tasks.total).toBe(1);
-    expect(links.orphans).toEqual([]);
-    expect(links.notes.find((note) => note.path === 'b.md').inboundCount).toBe(1);
   });
 
   it('should list aggregated tags and note-level tag details', async () => {
@@ -187,58 +184,7 @@ describe('analysis tools', () => {
     expect(writeFile).toHaveBeenCalledTimes(1);
   });
 
-  it('should audit assets and report unreferenced, missing, shared, and owned assets', async () => {
-    glob.mockImplementation(async (pattern, options) => {
-      if (pattern === '/test/vault/**/*' && options?.nodir === true) {
-        return [
-          '/test/vault/assets/a.png',
-          '/test/vault/assets/shared.png',
-          '/test/vault/assets/unused.png'
-        ];
-      }
-
-      if (pattern === '/test/vault/**/*.md') {
-        return [
-          '/test/vault/a.md',
-          '/test/vault/b.md'
-        ];
-      }
-
-      if (pattern === '/test/vault/**/a.png') {
-        return ['/test/vault/assets/a.png'];
-      }
-
-      if (pattern === '/test/vault/**/shared.png') {
-        return ['/test/vault/assets/shared.png'];
-      }
-
-      if (pattern === '/test/vault/**/missing.png') {
-        return [];
-      }
-
-      return [];
-    });
-    readFile.mockImplementation(async (file) => {
-      if (file.endsWith('/a.md')) {
-        return '![[assets/a.png]]\n![[assets/shared.png]]\n![[assets/missing.png]]';
-      }
-      return '![[assets/shared.png]]';
-    });
-    access.mockImplementation(async (targetPath) => {
-      if (targetPath === '/test/vault/assets/missing.png') {
-        throw new Error('ENOENT');
-      }
-    });
-
-    const result = await auditAssets(vaultPath, {});
-
-    expect(result.unreferencedAssets).toEqual(['assets/unused.png']);
-    expect(result.missingAssets).toEqual([{ notePath: 'a.md', target: 'assets/missing.png', format: 'wikilink' }]);
-    expect(result.sharedAssets).toEqual([{ path: 'assets/shared.png', notePaths: ['a.md', 'b.md'] }]);
-    expect(result.ownedAssetsByNote).toEqual([{ notePath: 'a.md', assets: ['assets/a.png'] }]);
-  });
-
-  it('should dry-run and apply bulk note deletion with owned asset cleanup', async () => {
+  it('should dry-run and apply bulk note deletion with automatic asset cleanup', async () => {
     glob.mockImplementation(async (pattern) => {
       if (pattern === '/test/vault/**/*.md') {
         return [
@@ -271,21 +217,19 @@ describe('analysis tools', () => {
 
     const dryRun = await bulkDeleteNote(vaultPath, {
       paths: ['a.md', 'b.md'],
-      dryRun: true,
-      deleteOwnedAssets: true
+      dryRun: true
     });
     const applied = await bulkDeleteNote(vaultPath, {
       paths: ['a.md', 'b.md'],
-      dryRun: false,
-      deleteOwnedAssets: true
+      dryRun: false
     });
 
     expect(dryRun.results).toEqual([
-      { path: 'a.md', status: 'planned', assetPaths: ['assets/a.png', 'assets/shared.png'], errors: [] },
-      { path: 'b.md', status: 'planned', assetPaths: ['assets/b.png', 'assets/shared.png'], errors: [] }
+      { path: 'a.md', status: 'planned', assetPaths: ['assets/a.png'], errors: [] },
+      { path: 'b.md', status: 'planned', assetPaths: ['assets/b.png'], errors: [] }
     ]);
     expect(applied.deletedCount).toBe(2);
-    expect(applied.deletedAssetCount).toBe(3);
-    expect(rm).toHaveBeenCalledTimes(3);
+    expect(applied.deletedAssetCount).toBe(2);
+    expect(rm).toHaveBeenCalledTimes(2);
   });
 });

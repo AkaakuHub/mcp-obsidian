@@ -3,8 +3,7 @@ export {
   bulkUpdateFrontmatter
 } from './frontmatter-tools.js';
 export {
-  extractTasks,
-  analyzeLinks
+  extractTasks
 } from './analysis-query-tools.js';
 export {
   moveMany
@@ -16,6 +15,3 @@ export {
 export {
   bulkDeleteNote
 } from './bulk-delete-tools.js';
-export {
-  auditAssets
-} from './asset-audit-tools.js';

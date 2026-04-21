@@ -5,7 +5,7 @@ import { updateNote, searchVault, listNotes, readNote, writeNote, moveNote, dele
 vi.mock('fs/promises');
 vi.mock('glob');
 
-import { readFile, writeFile, mkdir, unlink, access, rename, stat } from 'fs/promises';
+import { readFile, writeFile, mkdir, unlink, access, rename, rm, stat } from 'fs/promises';
 import { glob } from 'glob';
 import { clearSnapshotCache } from '../src/vault-cache.js';
 import { getVaultSnapshot } from '../src/vault-analysis.js';
@@ -391,13 +391,19 @@ describe('Tools module', () => {
     });
 
     it('should invalidate cached snapshots after deleting', async () => {
-      glob
-        .mockResolvedValueOnce(['/test/vault/delete-me.md'])
-        .mockResolvedValueOnce([]);
+      let notePresent = true;
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return notePresent ? ['/test/vault/delete-me.md'] : [];
+        }
+        return [];
+      });
       stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile.mockResolvedValue('# Delete Me');
       access.mockResolvedValue();
-      unlink.mockResolvedValue();
+      unlink.mockImplementation(async () => {
+        notePresent = false;
+      });
 
       const before = await getVaultSnapshot(mockVaultPath, {});
       await deleteNote(mockVaultPath, 'delete-me.md');
@@ -405,7 +411,42 @@ describe('Tools module', () => {
 
       expect(before.notes).toHaveLength(1);
       expect(after.notes).toHaveLength(0);
-      expect(glob).toHaveBeenCalledTimes(2);
+      expect(glob).toHaveBeenCalledTimes(3);
+    });
+
+    it('should delete uniquely owned assets and rewrite backlinks when deleting a note', async () => {
+      access.mockResolvedValue();
+      unlink.mockResolvedValue();
+      rm.mockResolvedValue();
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return [
+            '/test/vault/source.md',
+            '/test/vault/ref.md'
+          ];
+        }
+        if (pattern === '/test/vault/**/image.png') {
+          return ['/test/vault/assets/image.png'];
+        }
+        return [];
+      });
+      readFile.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return '![[assets/image.png]]';
+        }
+        if (targetPath === '/test/vault/ref.md') {
+          return 'See [[source|the source]]';
+        }
+        return '';
+      });
+      writeFile.mockResolvedValue();
+
+      const result = await deleteNote(mockVaultPath, 'source.md');
+
+      expect(result).toBe('source.md');
+      expect(unlink).toHaveBeenCalledWith('/test/vault/source.md');
+      expect(rm).toHaveBeenCalledWith('/test/vault/assets/image.png');
+      expect(writeFile).toHaveBeenCalledWith('/test/vault/ref.md', 'See the source', 'utf-8');
     });
   });
 
@@ -473,9 +514,13 @@ describe('Tools module', () => {
     });
 
     it('should invalidate cached snapshots after moving', async () => {
-      glob
-        .mockResolvedValueOnce(['/test/vault/source.md'])
-        .mockResolvedValueOnce(['/test/vault/archive/source.md']);
+      let notePath = '/test/vault/source.md';
+      glob.mockImplementation(async (pattern) => {
+        if (pattern === '/test/vault/**/*.md') {
+          return [notePath];
+        }
+        return [];
+      });
       stat.mockResolvedValue({ size: 20, birthtime: new Date('2026-01-01T00:00:00.000Z'), mtime: new Date('2026-01-02T00:00:00.000Z') });
       readFile
         .mockResolvedValueOnce('# Source')
@@ -489,7 +534,11 @@ describe('Tools module', () => {
         throw error;
       });
       mkdir.mockResolvedValue();
-      rename.mockResolvedValue();
+      rename.mockImplementation(async (fromPath, toPath) => {
+        if (fromPath === '/test/vault/source.md' && toPath === '/test/vault/archive/source.md') {
+          notePath = '/test/vault/archive/source.md';
+        }
+      });
 
       const before = await getVaultSnapshot(mockVaultPath, {});
       await moveNote(mockVaultPath, 'source.md', 'archive/source.md');
@@ -497,7 +546,7 @@ describe('Tools module', () => {
 
       expect(before.notes[0].path).toBe('source.md');
       expect(after.notes[0].path).toBe('archive/source.md');
-      expect(glob).toHaveBeenCalledTimes(2);
+      expect(glob).toHaveBeenCalledTimes(3);
     });
 
     it('should move note-owned assets under the source folder and rewrite vault-relative embeds', async () => {
@@ -631,6 +680,44 @@ describe('Tools module', () => {
 
       expect(rename).toHaveBeenCalledTimes(1);
       expect(writeFile).not.toHaveBeenCalled();
+    });
+
+    it('should rewrite supported internal note links across the vault when moving a note', async () => {
+      access.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return;
+        }
+        const error = new Error('missing');
+        error.code = 'ENOENT';
+        throw error;
+      });
+      glob.mockResolvedValue([
+        '/test/vault/source.md',
+        '/test/vault/ref.md'
+      ]);
+      readFile.mockImplementation(async (targetPath) => {
+        if (targetPath === '/test/vault/source.md') {
+          return '# Source';
+        }
+        if (targetPath === '/test/vault/ref.md') {
+          return 'Wiki [[source|Source Alias]] and [Source](source.md)';
+        }
+        if (targetPath === '/test/vault/archive/source.md') {
+          return '# Source';
+        }
+        return '';
+      });
+      mkdir.mockResolvedValue();
+      rename.mockResolvedValue();
+      writeFile.mockResolvedValue();
+
+      await moveNote(mockVaultPath, 'source.md', 'archive/source.md');
+
+      expect(writeFile).toHaveBeenCalledWith(
+        '/test/vault/ref.md',
+        'Wiki [[archive/source|Source Alias]] and [Source](archive/source.md)',
+        'utf-8'
+      );
     });
   });
 });

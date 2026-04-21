@@ -10,10 +10,16 @@ import { searchFilenamesWithSnapshot, searchVaultWithSnapshot } from './search-t
 import { paginateArray } from './search.js';
 import { flattenFolderTree } from './reorganization-core.js';
 import {
-  executeNoteAssetMoves,
-  planNoteAssetMoves,
-  rewriteMovedNoteAssets
-} from './note-asset-moves.js';
+  applyAssetFollowupForDelete,
+  applyAssetFollowupForMove,
+  planAssetFollowupForDelete,
+  planAssetFollowupForMove
+} from './asset-followup.js';
+import {
+  applyLinkFollowupPlan,
+  planLinkFollowupForDelete,
+  planLinkFollowupForMove
+} from './link-followup.js';
 import {
   validatePathWithinBase,
   validateMarkdownExtension,
@@ -337,7 +343,8 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
     });
   }
 
-  const assetPlan = await planNoteAssetMoves(vaultPath, fullSourcePath, fullDestinationPath);
+  const assetPlan = await planAssetFollowupForMove(vaultPath, fullSourcePath, fullDestinationPath);
+  const linkPlan = await planLinkFollowupForMove(vaultPath, resolvedSourcePath, destinationPath);
 
   try {
     await access(fullDestinationPath, constants.F_OK);
@@ -365,8 +372,8 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
     await mkdir(path.dirname(fullDestinationPath), { recursive: true });
     await rename(fullSourcePath, fullDestinationPath);
     noteMoved = true;
-    await executeNoteAssetMoves(vaultPath, assetPlan, overwrite);
-    await rewriteMovedNoteAssets(fullDestinationPath, assetPlan);
+    await applyAssetFollowupForMove(vaultPath, assetPlan, fullDestinationPath, overwrite);
+    await applyLinkFollowupPlan(vaultPath, linkPlan);
     invalidateSnapshotsForVault(vaultPath);
     return {
       fromPath: resolvedSourcePath,
@@ -399,7 +406,7 @@ export async function moveNote(vaultPath, sourcePath, destinationPath, overwrite
   }
 }
 
-export async function deleteNote(vaultPath, notePath) {
+export async function deleteNoteWithFollowup(vaultPath, notePath) {
   const paramValidation = validateRequiredParameters({ path: notePath }, ['path']);
   assertValid(paramValidation, (msg) => Errors.invalidParams(msg));
 
@@ -410,6 +417,7 @@ export async function deleteNote(vaultPath, notePath) {
   assertValid(pathValidation, (msg) => Errors.accessDenied(msg, { path: notePath }));
 
   const fullPath = pathValidation.resolvedPath;
+  const resolvedNotePath = toVaultRelativePath(vaultPath, fullPath);
 
   try {
     await access(fullPath, constants.W_OK);
@@ -417,10 +425,20 @@ export async function deleteNote(vaultPath, notePath) {
     throw Errors.resourceNotFound(notePath, { path: notePath });
   }
 
+  const assetPlan = await planAssetFollowupForDelete(vaultPath, fullPath);
+  const linkPlan = await planLinkFollowupForDelete(vaultPath, resolvedNotePath);
+
   try {
     await unlink(fullPath);
+    const deletedAssetPaths = await applyAssetFollowupForDelete(assetPlan);
+    const updatedLinkNotePaths = await applyLinkFollowupPlan(vaultPath, linkPlan);
     invalidateSnapshotsForVault(vaultPath);
-    return notePath;
+    return {
+      path: resolvedNotePath,
+      status: 'deleted',
+      deletedAssetPaths: deletedAssetPaths.map((assetPath) => toVaultRelativePath(vaultPath, assetPath)),
+      updatedLinkNotePaths
+    };
   } catch (error) {
     if (error.code === 'ENOENT') {
       throw Errors.resourceNotFound(notePath, { path: notePath });
@@ -430,4 +448,9 @@ export async function deleteNote(vaultPath, notePath) {
     }
     throw Errors.internalError(`Failed to delete note: ${error.message}`, { path: notePath });
   }
+}
+
+export async function deleteNote(vaultPath, notePath) {
+  const result = await deleteNoteWithFollowup(vaultPath, notePath);
+  return result.path;
 }

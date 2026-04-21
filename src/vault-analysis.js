@@ -177,69 +177,6 @@ export async function scanVaultNotes(vaultPath, options = {}) {
   };
 }
 
-function normalizeLinkTarget(target) {
-  return target.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
-}
-
-export function buildLinkGraph(notes) {
-  const aliasMap = new Map();
-  const inbound = new Map(notes.map((note) => [note.path, new Set()]));
-  const outbound = new Map(notes.map((note) => [note.path, []]));
-
-  for (const note of notes) {
-    const relativeWithoutExt = note.path.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
-    const stem = note.stem.toLowerCase();
-
-    if (!aliasMap.has(relativeWithoutExt)) {
-      aliasMap.set(relativeWithoutExt, note.path);
-    }
-
-    if (!aliasMap.has(stem)) {
-      aliasMap.set(stem, note.path);
-    }
-  }
-
-  for (const note of notes) {
-    const resolved = [];
-
-    for (const link of note.links) {
-      const target = aliasMap.get(normalizeLinkTarget(link));
-      resolved.push({
-        target: link,
-        resolvedPath: target || null
-      });
-
-      if (target && target !== note.path) {
-        inbound.get(target).add(note.path);
-      }
-    }
-
-    outbound.set(note.path, resolved);
-  }
-
-  const nodes = notes.map((note) => {
-    const inboundLinks = [...(inbound.get(note.path) || [])].sort();
-    const outboundLinks = outbound.get(note.path) || [];
-    const resolvedOutboundCount = outboundLinks.filter((link) => link.resolvedPath).length;
-
-    return {
-      path: note.path,
-      outboundCount: resolvedOutboundCount,
-      inboundCount: inboundLinks.length,
-      outboundLinks,
-      inboundLinks,
-      isOrphan: inboundLinks.length === 0 && resolvedOutboundCount === 0,
-      isHub: inboundLinks.length + resolvedOutboundCount >= 10
-    };
-  }).sort((left, right) => left.path.localeCompare(right.path));
-
-  return {
-    nodes,
-    orphans: nodes.filter((node) => node.isOrphan).map((node) => node.path),
-    hubs: nodes.filter((node) => node.isHub).map((node) => node.path)
-  };
-}
-
 function createFolderNode(name, nodePath, depth) {
   return {
     name,

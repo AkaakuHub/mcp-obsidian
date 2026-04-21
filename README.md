@@ -197,11 +197,15 @@ Move or rename a note to a new vault-relative path.
 - Creates destination directories automatically
 - Supports safe overwrite mode when explicitly enabled
 - Returns both the resolved source path and destination path
+- Follows owned asset references for the moved note and updates those asset paths when needed
+- Rewrites supported internal note links that pointed at the moved note
 
 ### delete-note
 Delete a note from your vault.
 - Validated deletion with proper path checks
 - Path security checks
+- Rewrites supported internal note links in surviving notes so they no longer point at the deleted note
+- Deletes asset files that were referenced only by the deleted note
 
 ### bulk-move-note
 Preview or apply multiple note moves in one call.
@@ -209,7 +213,7 @@ Preview or apply multiple note moves in one call.
 - Validates all moves before writing
 - Attempts rollback if a move fails after earlier moves succeeded
 
-## New Organization And Audit Tools
+## Organization Tools
 
 These tools are aimed at vault cleanup, inventory, and preview-first bulk operations.
 
@@ -230,17 +234,21 @@ Examples:
 { "directory": "Projects", "fields": { "area": "work" }, "dryRun": true, "limit": 50 }
 ```
 
-### Tasks and links
+### Tasks and reorganization
 - `extract-tasks` - vault-wide task extraction with due-date detection
-- `analyze-links` - backlinks, outbound links, orphan notes, and hub notes
-- `bulk-move-note` - preview-first batch move execution with rollback attempts
+- `bulk-move-note` - preview-first batch move execution with rollback attempts plus automatic note-link and owned-asset follow-up
+- `bulk-delete-note` - preview-first batch deletion with automatic note-link and owned-asset follow-up
+
+### Automatic follow-up
+- `move-note` and `bulk-move-note` rewrite supported internal note links that pointed at the moved note.
+- `move-note` and `bulk-move-note` also move asset files that are referenced only by the moved note and live under the moved note's source folder.
+- `delete-note` and `bulk-delete-note` rewrite supported internal note links in surviving notes so they no longer point at deleted notes.
+- `delete-note` and `bulk-delete-note` also delete asset files that were referenced only by the deleted note.
+- Follow-up is internal behavior. There is no separate public audit tool for links or assets.
 
 Examples:
 ```json
 { "directory": "Projects", "includeCompleted": false, "limit": 200 }
-```
-```json
-{ "notePath": "Projects/alpha.md" }
 ```
 ```json
 { "directory": "Projects" }

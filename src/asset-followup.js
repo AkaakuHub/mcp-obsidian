@@ -1,5 +1,5 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises';
 import path from 'path';
+import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises';
 import {
   buildDestinationAssetPath,
   extractInternalAssetLinks,
@@ -9,6 +9,7 @@ import {
 } from './asset-links.js';
 import {
   collectReferenceOwners,
+  isAssetOwnedOnlyBy,
   normalizePath,
   pathExists,
   resolveAssetCandidate
@@ -43,7 +44,7 @@ function buildRewriteMap(vaultPath, resolvedLinks, refsToMove) {
   return replacements;
 }
 
-export async function planNoteAssetMoves(vaultPath, sourceNoteFullPath, destinationNoteFullPath) {
+export async function planAssetFollowupForMove(vaultPath, sourceNoteFullPath, destinationNoteFullPath) {
   const sourceContent = await readFile(sourceNoteFullPath, 'utf-8');
   const sourceDirectory = path.dirname(sourceNoteFullPath);
   const destinationDirectory = path.dirname(destinationNoteFullPath);
@@ -73,9 +74,9 @@ export async function planNoteAssetMoves(vaultPath, sourceNoteFullPath, destinat
 
   const candidatePaths = new Set(movableLinks.map(link => link.fullPath));
   const owners = await collectReferenceOwners(vaultPath, candidatePaths);
-  const refsToMove = movableLinks.filter(link => {
-    const linkOwners = owners.get(link.fullPath);
-    return linkOwners && linkOwners.size === 1 && linkOwners.has(sourceNoteFullPath);
+  const sourceOwnerSet = new Set([sourceNoteFullPath]);
+  const refsToMove = movableLinks.filter((link) => {
+    return isAssetOwnedOnlyBy(owners, link.fullPath, sourceOwnerSet);
   });
 
   const uniqueMoves = new Map();
@@ -118,7 +119,7 @@ async function ensureDestinationAssetsAvailable(vaultPath, assetMoves, overwrite
   }
 }
 
-export async function executeNoteAssetMoves(vaultPath, assetPlan, overwrite) {
+export async function applyAssetFollowupForMove(vaultPath, assetPlan, destinationNoteFullPath, overwrite) {
   await ensureDestinationAssetsAvailable(vaultPath, assetPlan.assetMoves, overwrite);
 
   if (overwrite) {
@@ -132,6 +133,11 @@ export async function executeNoteAssetMoves(vaultPath, assetPlan, overwrite) {
       await mkdir(path.dirname(assetMove.destinationAssetPath), { recursive: true });
       await rename(assetMove.sourceAssetPath, assetMove.destinationAssetPath);
       completedMoves.push(assetMove);
+    }
+
+    if (assetPlan.rewrittenContent !== assetPlan.sourceContent) {
+      await mkdir(path.dirname(destinationNoteFullPath), { recursive: true });
+      await writeFile(destinationNoteFullPath, sanitizeContentPure(assetPlan.rewrittenContent), 'utf-8');
     }
 
     return completedMoves;
@@ -149,11 +155,43 @@ export async function executeNoteAssetMoves(vaultPath, assetPlan, overwrite) {
   }
 }
 
-export async function rewriteMovedNoteAssets(destinationNoteFullPath, assetPlan) {
-  if (assetPlan.rewrittenContent === assetPlan.sourceContent) {
-    return;
+export async function planAssetFollowupForDelete(vaultPath, noteFullPath) {
+  const content = await readFile(noteFullPath, 'utf-8');
+  const assetLinks = extractInternalAssetLinks(content);
+  const resolvedLinks = [];
+  const trackedAssets = new Set();
+
+  for (const link of assetLinks) {
+    const resolved = await resolveAssetCandidate(vaultPath, noteFullPath, link);
+    if (!resolved) {
+      continue;
+    }
+
+    resolvedLinks.push({
+      ...link,
+      fullPath: resolved.fullPath
+    });
+    trackedAssets.add(resolved.fullPath);
   }
 
-  await mkdir(path.dirname(destinationNoteFullPath), { recursive: true });
-  await writeFile(destinationNoteFullPath, sanitizeContentPure(assetPlan.rewrittenContent), 'utf-8');
+  const owners = await collectReferenceOwners(vaultPath, trackedAssets);
+  const noteOwnerSet = new Set([noteFullPath]);
+  const assetPaths = [...new Set(
+    resolvedLinks
+      .filter((link) => isAssetOwnedOnlyBy(owners, link.fullPath, noteOwnerSet))
+      .map((link) => link.fullPath)
+  )].sort();
+
+  return { assetPaths };
+}
+
+export async function applyAssetFollowupForDelete(assetPlan) {
+  const deletedAssetPaths = [];
+
+  for (const assetFullPath of assetPlan.assetPaths) {
+    await rm(assetFullPath);
+    deletedAssetPaths.push(assetFullPath);
+  }
+
+  return deletedAssetPaths;
 }
